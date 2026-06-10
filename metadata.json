@@ -1,0 +1,8 @@
+{
+  "name": " orginal Trojan Recovery",
+  "description": "Enterprise-grade Blockchain Investigation, Cryptocurrency Recovery, Cyber Intelligence, and Digital Forensics.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
