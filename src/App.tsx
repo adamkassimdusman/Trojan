@@ -29,6 +29,7 @@ import {
   Eye
 } from 'lucide-react';
 
+import TrojanLogo from './components/TrojanLogo';
 import Navigation from './components/Navigation';
 import TestimonialCarousel from './components/TestimonialCarousel';
 import { SERVICES } from './data/servicesData';
@@ -2879,7 +2880,7 @@ export default function App() {
                       src="https://maps.google.com/maps?q=1830%20Arbutus%20Drive,%20Miami,%20Florida&t=&z=14&ie=UTF8&iwloc=&output=embed"
                       width="100%"
                       height="100%"
-                      style={{ border: 0, filter: 'grayscale(1) invert(90%) hue-rotate(180deg) brightness(0.85) contrast(1.2)' }}
+                      style={{ border: 0 }}
                       allowFullScreen={false}
                       loading="lazy"
                       referrerPolicy="no-referrer-when-downgrade"
@@ -2976,7 +2977,7 @@ export default function App() {
           <div className="space-y-3">
             <div className="flex items-center space-x-2">
               <div className="flex h-8 w-8 items-center justify-center rounded bg-gold/10 border border-gold/30">
-                <ShieldCheck className="h-4.5 w-4.5 text-gold" />
+                <TrojanLogo className="h-5 w-5" />
               </div>
               <span className="font-display font-bold text-white uppercase">Trojan Recovery</span>
             </div>

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Shield, MessageCircle } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
+import TrojanLogo from './TrojanLogo';
 
 interface NavigationProps {
   currentTab: string;
@@ -33,7 +34,7 @@ export default function Navigation({ currentTab, setTab }: NavigationProps) {
             id="nav-logo"
           >
             <div className="relative flex h-10 w-10 items-center justify-center rounded-sm border border-gold/40 bg-[#0A192F] shadow-[0_0_10px_rgba(212,175,55,0.15)]">
-              <Shield className="h-5 w-5 text-gold" />
+              <TrojanLogo className="h-7 w-7" />
               <div className="absolute inset-0 rounded-sm bg-gold/5 animate-pulse-slow"></div>
             </div>
             <div>
