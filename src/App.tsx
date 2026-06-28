@@ -376,6 +376,86 @@ export default function App() {
     setMetaTag('twitter:image', img, false);
   }, [selectedNewsId, selectedBlogId, newsList, blogsList]);
 
+  // Dynamic JSON-LD Breadcrumb structured data for every page view
+  useEffect(() => {
+    const existingScript = document.getElementById('breadcrumb-jsonld');
+    if (existingScript) {
+      existingScript.remove();
+    }
+
+    const host = window.location.origin;
+    const items = [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": host
+      }
+    ];
+
+    let currentPosition = 2;
+
+    const addBreadcrumb = (name: string, path: string) => {
+      items.push({
+        "@type": "ListItem",
+        "position": currentPosition++,
+        "name": name,
+        "item": `${host}${path}`
+      });
+    };
+
+    if (currentTab === 'services') {
+      addBreadcrumb("Services", "/?tab=services");
+      if (selectedServiceId) {
+        const srv = SERVICES.find(s => s.id === selectedServiceId);
+        if (srv) {
+          addBreadcrumb(srv.title, `/?tab=services&id=${selectedServiceId}`);
+        }
+      }
+    } else if (currentTab === 'cases') {
+      addBreadcrumb("Case Studies", "/?tab=cases");
+    } else if (currentTab === 'news') {
+      addBreadcrumb("News Center", "/?tab=news");
+      if (selectedNewsId) {
+        const newsArt = newsList.find(n => n.id === selectedNewsId) || getDynamicFallbackNews().find(n => n.id === selectedNewsId);
+        if (newsArt) {
+          addBreadcrumb(newsArt.title, `/?type=news&id=${selectedNewsId}`);
+        }
+      }
+    } else if (currentTab === 'blog') {
+      addBreadcrumb("Forensic Blog", "/?tab=blog");
+      if (selectedBlogId) {
+        const blogPost = blogsList.find(b => b.id === selectedBlogId) || getStaticBlogsFallback().find(b => b.id === selectedBlogId);
+        if (blogPost) {
+          addBreadcrumb(blogPost.title, `/?type=blog&id=${selectedBlogId}`);
+        }
+      }
+    } else if (currentTab === 'faq') {
+      addBreadcrumb("FAQ", "/?tab=faq");
+    } else if (currentTab === 'contact') {
+      addBreadcrumb("Contact Us", "/?tab=contact");
+    }
+
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": items
+    };
+
+    const script = document.createElement('script');
+    script.id = 'breadcrumb-jsonld';
+    script.type = 'application/ld+json';
+    script.innerHTML = JSON.stringify(jsonLd, null, 2);
+    document.head.appendChild(script);
+
+    return () => {
+      const cleanupScript = document.getElementById('breadcrumb-jsonld');
+      if (cleanupScript) {
+        cleanupScript.remove();
+      }
+    };
+  }, [currentTab, selectedNewsId, selectedBlogId, selectedServiceId, newsList, blogsList]);
+
   // Manual draft creation states
   const [manualTitle, setManualTitle] = useState('');
   const [manualCategory, setManualCategory] = useState('Scam Prevention');
@@ -2789,7 +2869,10 @@ export default function App() {
                 
                 {/* Global Forensic Operational Grid Map */}
                 <div className="relative rounded-2xl border border-gold/15 bg-navy-light/10 p-5 space-y-4 shadow-xl">
-                  <h3 className="font-display text-xs font-bold uppercase tracking-wider text-white border-b border-white/5 pb-2">Global Operations Grid Map</h3>
+                  <h3 className="font-display text-xs font-bold uppercase tracking-wider text-white border-b border-white/5 pb-2 flex items-center space-x-2">
+                    <TrojanLogo className="h-4.5 w-4.5" />
+                    <span>Global Operations Grid Map</span>
+                  </h3>
                   
                   {/* Dynamic map graphics representing global secure nodes */}
                   <div className="relative h-44 rounded bg-navy-dark overflow-hidden border border-gold/10 flex items-center justify-center">
@@ -2869,22 +2952,30 @@ export default function App() {
                 <div className="relative rounded-2xl border border-gold/15 bg-navy-light/10 overflow-hidden shadow-xl">
                   <div className="p-4 border-b border-white/5 bg-navy-dark/40 flex items-center justify-between">
                     <h3 className="font-display text-xs font-bold uppercase tracking-wider text-gold flex items-center space-x-1.5">
-                      <MapPin className="h-3.5 w-3.5" />
+                      <TrojanLogo className="h-4.5 w-4.5" />
                       <span>Miami Headquarters Location</span>
                     </h3>
                     <span className="text-[9px] font-mono text-[#8892B0] uppercase">Live View</span>
                   </div>
-                  <div className="w-full h-48 bg-navy-dark">
+                  <div className="relative w-full h-48 bg-navy-dark">
                     <iframe
                       title="Trojan Recovery Miami HQ Live Google Map location"
                       src="https://maps.google.com/maps?q=1830%20Arbutus%20Drive,%20Miami,%20Florida&t=&z=14&ie=UTF8&iwloc=&output=embed"
                       width="100%"
                       height="100%"
-                      style={{ border: 0 }}
+                      style={{ 
+                        border: 0,
+                        filter: 'grayscale(1) invert(90%) hue-rotate(180deg) saturate(2.2) sepia(0.25) brightness(0.85) contrast(1.15)'
+                      }}
                       allowFullScreen={false}
                       loading="lazy"
                       referrerPolicy="no-referrer-when-downgrade"
                     ></iframe>
+                    {/* Floating watermarked logo badge on the styled map */}
+                    <div className="absolute top-3 right-3 flex items-center space-x-1.5 bg-[#0A192F]/90 backdrop-blur-md px-2.5 py-1.5 rounded-md border border-gold/45 shadow-lg pointer-events-none z-10">
+                      <TrojanLogo className="h-4.5 w-4.5" />
+                      <span className="text-[8.5px] font-mono font-bold tracking-wider text-white uppercase">TROJAN FORENSICS HQ</span>
+                    </div>
                   </div>
                   <div className="p-3 bg-navy-dark/60 text-[10.5px] text-navy-slate font-mono border-t border-white/5 flex items-center justify-between">
                     <span>LAT: 25.76168° N • LON: -80.19179° W</span>
