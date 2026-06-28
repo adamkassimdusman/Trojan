@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Build & Auto-Deploy to aaPanel Server
 
 on:
   push:
@@ -6,31 +6,24 @@ on:
       - main
       - master
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
 concurrency:
-  group: 'pages'
+  group: 'deploy-aapanel'
   cancel-in-progress: true
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Node
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: 'npm'
 
-      - name: Install dependencies
+      - name: Install Dependencies
         run: |
           if [ -f package-lock.json ]; then
             npm ci
@@ -38,17 +31,45 @@ jobs:
             npm install
           fi
 
-      - name: Build
+      - name: Compile Full-Stack Assets
         run: npm run build
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Deploy Compiled Bundle to aaPanel (SFTP)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          path: './dist'
+          server: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SFTP_PORT || 22 }}
+          local-dir: ./
+          server-dir: /www/wwwroot/trojanrecovery.com/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/src/**
+            ./vite.config.ts
+            ./tsconfig.json
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Trigger Remote Process Restart via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT || 22 }}
+          script: |
+            cd /www/wwwroot/trojanrecovery.com
+            # Install production dependencies on the server
+            npm install --production
+            # Restart PM2 instance safely
+            if command -v pm2 &> /dev/null; then
+              if pm2 list | grep -q "trojan-recovery"; then
+                pm2 restart "trojan-recovery" --update-env
+              else
+                pm2 start dist/server.cjs --name "trojan-recovery" --env production
+              fi
+              pm2 save
+            else
+              echo "⚠️ PM2 not found globally. Please install pm2 or start node dist/server.cjs manually."
+            fi
