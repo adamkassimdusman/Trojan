@@ -1,32 +1,36 @@
-#!/bin/bash
-set -euo pipefail
+name: Deploy to VPS
 
-APP_DIR="/www/wwwroot/Trojan"
-APP_NAME="trojan"
+on:
+  push:
+    branches: ["main"]
 
-echo "=== Deploy started ==="
+jobs:
+  build:
+    runs-on: ubuntu-latest
 
-cd "$APP_DIR"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-echo "Syncing repository..."
-git fetch origin main
-git reset --hard origin/main
-git clean -fd
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
-echo "Installing dependencies..."
-npm ci --silent
+      - name: Install dependencies
+        run: npm ci
 
-echo "Building application..."
-npm run build
+      - name: Build project
+        run: npm run build
 
-echo "Restarting PM2 process..."
+      - name: Archive build
+        run: tar -czf dist.tar.gz dist package.json package-lock.json
 
-if pm2 describe "$APP_NAME" > /dev/null 2>&1; then
-    pm2 reload "$APP_NAME" --update-env
-else
-    pm2 start dist/server.cjs --name "$APP_NAME"
-fi
-
-pm2 save
-
-echo "=== Deploy complete ==="
+      - name: Upload artifact to VPS
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: root
+          key: ${{ secrets.VPS_SSH_KEY }}
+          source: "dist.tar.gz"
+          target: "/tmp"
