@@ -1078,7 +1078,7 @@ export default function App() {
                       <span>Live Chat</span>
                     </button>
                     <a 
-                      href="https://wa.me/message/KKXZDMN4D5F7I1"
+                      href="https://wa.me/18104027458"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="rounded-sm bg-emerald-600 hover:bg-emerald-500 px-5 py-3.5 text-xs font-bold tracking-widest text-white transition duration-300 uppercase flex items-center justify-center space-x-1.5 shadow-[0_4px_15px_rgba(16,185,129,0.25)] hover:-translate-y-0.5 shrink-0"
@@ -1377,7 +1377,7 @@ export default function App() {
                               <span>Secure Live Chat Desk</span>
                             </button>
                             <a
-                              href="https://wa.me/message/KKXZDMN4D5F7I1"
+                              href="https://wa.me/18104027458"
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center justify-center space-x-2 rounded bg-emerald-600 hover:bg-emerald-500 px-5 py-3 text-xs font-bold uppercase tracking-wider text-white transition font-mono cursor-pointer"
@@ -1707,7 +1707,7 @@ export default function App() {
                               <span>Consult Live on Chat Desk</span>
                             </button>
                             <a
-                              href="https://wa.me/message/KKXZDMN4D5F7I1"
+                              href="https://wa.me/18104027458"
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex items-center space-x-2 rounded bg-emerald-600 hover:bg-emerald-500 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition leading-none shadow-[0_4px_10px_rgba(16,185,129,0.2)] cursor-pointer"
@@ -1861,7 +1861,7 @@ export default function App() {
                       <span>Initiate Real-Time Chat</span>
                     </button>
                     <a
-                      href="https://wa.me/message/KKXZDMN4D5F7I1"
+                      href="https://wa.me/18104027458"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-full md:w-auto rounded bg-emerald-600 hover:bg-emerald-500 px-6 py-3.5 font-display text-xs font-extrabold tracking-widest text-white uppercase shadow-[0_4px_15px_rgba(16,185,129,0.2)] transition active:scale-[0.98] flex items-center justify-center space-x-2 cursor-pointer"
@@ -2762,7 +2762,7 @@ export default function App() {
                           <span>Immediate Live Chat Support</span>
                         </button>
                         <a
-                          href="https://wa.me/message/KKXZDMN4D5F7I1"
+                          href="https://wa.me/18104027458"
                           target="_blank"
                           rel="noopener noreferrer"
                           className="rounded bg-emerald-600 hover:bg-emerald-500 px-5 py-3 text-xs font-bold tracking-widest text-white transition duration-200 uppercase inline-flex items-center justify-center space-x-2 cursor-pointer"
@@ -2924,6 +2924,20 @@ export default function App() {
                       <div>
                         <strong className="text-white block uppercase text-[10.5px]">Secure Direct Address</strong>
                         <span className="block text-[11px] font-mono text-gold underline">support@trojanrecovery.com</span>
+                      </div>
+                    </div>
+                    <div className="flex items-start space-x-2.5">
+                      <Phone className="h-4.5 w-4.5 text-emerald-400 shrink-0 mt-0.5" />
+                      <div>
+                        <strong className="text-white block uppercase text-[10.5px]">WhatsApp Forensic Hotline</strong>
+                        <a 
+                          href="https://wa.me/18104027458" 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="block text-[11px] font-mono text-emerald-400 hover:underline font-bold"
+                        >
+                          +1 (810) 402-7458
+                        </a>
                       </div>
                     </div>
 
