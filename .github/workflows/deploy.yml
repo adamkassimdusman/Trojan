@@ -1,20 +1,32 @@
-name: Deploy to VPS
+#!/bin/bash
+set -euo pipefail
 
-on:
-  push:
-    branches: [ "main" ]
+APP_DIR="/www/wwwroot/Trojan"
+APP_NAME="trojan"
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
+echo "=== Deploy started ==="
 
-    steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: root
-          key: ${{ secrets.VPS_SSH_KEY }}
-          script: |
-            cd /www/wwwroot/Trojan
-            ./deploy.sh
+cd "$APP_DIR"
+
+echo "Syncing repository..."
+git fetch origin main
+git reset --hard origin/main
+git clean -fd
+
+echo "Installing dependencies..."
+npm ci --silent
+
+echo "Building application..."
+npm run build
+
+echo "Restarting PM2 process..."
+
+if pm2 describe "$APP_NAME" > /dev/null 2>&1; then
+    pm2 reload "$APP_NAME" --update-env
+else
+    pm2 start dist/server.cjs --name "$APP_NAME"
+fi
+
+pm2 save
+
+echo "=== Deploy complete ==="
