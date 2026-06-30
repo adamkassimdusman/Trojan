@@ -2964,8 +2964,7 @@ export default function App() {
                       width="100%"
                       height="100%"
                       style={{ 
-                        border: 0,
-                        filter: 'grayscale(1) invert(90%) hue-rotate(180deg) saturate(2.2) sepia(0.25) brightness(0.85) contrast(1.15)'
+                        border: 0
                       }}
                       allowFullScreen={false}
                       loading="lazy"
