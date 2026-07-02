@@ -117,7 +117,7 @@ export default function TestimonialCarousel({ testimonials }: TestimonialCarouse
           </button>
 
           {/* Intermittent slide indicators dots */}
-          <div className="flex space-x-2">
+          <div className="flex space-x-0.5 items-center">
             {testimonials.map((_, idx) => (
               <button
                 key={idx}
@@ -125,13 +125,15 @@ export default function TestimonialCarousel({ testimonials }: TestimonialCarouse
                   setIsAutoPlaying(false);
                   setActiveIndex(idx);
                 }}
-                className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                  activeIndex === idx 
-                    ? 'w-6 bg-gold' 
-                    : 'bg-white/15 hover:bg-gold/50'
-                }`}
+                className="w-7 h-7 flex items-center justify-center transition focus:outline-none focus-visible:ring-1 focus-visible:ring-gold rounded-full cursor-pointer"
                 aria-label={`Go to slide ${idx + 1}`}
-              />
+              >
+                <span className={`h-2 rounded-full transition-all duration-300 ${
+                  activeIndex === idx 
+                    ? 'w-5 bg-gold' 
+                    : 'w-2 bg-white/15 hover:bg-gold/50'
+                }`} />
+              </button>
             ))}
           </div>
 

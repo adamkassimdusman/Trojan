@@ -1081,7 +1081,7 @@ export default function App() {
                       href="https://wa.me/16464256160"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="rounded-sm bg-emerald-600 hover:bg-emerald-500 px-5 py-3.5 text-xs font-bold tracking-widest text-white transition duration-300 uppercase flex items-center justify-center space-x-1.5 shadow-[0_4px_15px_rgba(16,185,129,0.25)] hover:-translate-y-0.5 shrink-0"
+                      className="rounded-sm bg-emerald-700 hover:bg-emerald-600 px-5 py-3.5 text-xs font-bold tracking-widest text-white transition duration-300 uppercase flex items-center justify-center space-x-1.5 shadow-[0_4px_15px_rgba(16,185,129,0.25)] hover:-translate-y-0.5 shrink-0"
                     >
                       <MessageCircle className="h-3.5 w-3.5 text-white" />
                       <span>WhatsApp Liaison</span>
@@ -1380,7 +1380,7 @@ export default function App() {
                               href="https://wa.me/16464256160"
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center justify-center space-x-2 rounded bg-emerald-600 hover:bg-emerald-500 px-5 py-3 text-xs font-bold uppercase tracking-wider text-white transition font-mono cursor-pointer"
+                              className="inline-flex items-center justify-center space-x-2 rounded bg-emerald-700 hover:bg-emerald-600 px-5 py-3 text-xs font-bold uppercase tracking-wider text-white transition font-mono cursor-pointer"
                             >
                               <MessageCircle className="h-4 w-4" />
                               <span>Join WhatsApp Liaison</span>
@@ -1710,7 +1710,7 @@ export default function App() {
                               href="https://wa.me/16464256160"
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center space-x-2 rounded bg-emerald-600 hover:bg-emerald-500 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition leading-none shadow-[0_4px_10px_rgba(16,185,129,0.2)] cursor-pointer"
+                              className="inline-flex items-center space-x-2 rounded bg-emerald-700 hover:bg-emerald-600 px-4 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition leading-none shadow-[0_4px_10px_rgba(16,185,129,0.2)] cursor-pointer"
                             >
                               <MessageCircle className="h-4 w-4" />
                               <span>Liaison on WhatsApp</span>
@@ -1864,7 +1864,7 @@ export default function App() {
                       href="https://wa.me/16464256160"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="w-full md:w-auto rounded bg-emerald-600 hover:bg-emerald-500 px-6 py-3.5 font-display text-xs font-extrabold tracking-widest text-white uppercase shadow-[0_4px_15px_rgba(16,185,129,0.2)] transition active:scale-[0.98] flex items-center justify-center space-x-2 cursor-pointer"
+                      className="w-full md:w-auto rounded bg-emerald-700 hover:bg-emerald-600 px-6 py-3.5 font-display text-xs font-extrabold tracking-widest text-white uppercase shadow-[0_4px_15px_rgba(16,185,129,0.2)] transition active:scale-[0.98] flex items-center justify-center space-x-2 cursor-pointer"
                     >
                       <MessageCircle className="h-4 w-4" />
                       <span>WhatsApp Liaison Link</span>
@@ -2765,7 +2765,7 @@ export default function App() {
                           href="https://wa.me/16464256160"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="rounded bg-emerald-600 hover:bg-emerald-500 px-5 py-3 text-xs font-bold tracking-widest text-white transition duration-200 uppercase inline-flex items-center justify-center space-x-2 cursor-pointer"
+                          className="rounded bg-emerald-700 hover:bg-emerald-600 px-5 py-3 text-xs font-bold tracking-widest text-white transition duration-200 uppercase inline-flex items-center justify-center space-x-2 cursor-pointer"
                         >
                           <MessageCircle className="h-4 w-4" />
                           <span>WhatsApp Liaison</span>
@@ -3093,23 +3093,23 @@ export default function App() {
           {/* Quick Sitemap Links */}
           <div className="space-y-3">
             <span className="block font-display text-[9.5px] font-bold tracking-widest text-gold uppercase">Investigation Suites</span>
-            <ul className="space-y-2 text-[11px]">
-              <li><button onClick={() => setTab('services')} className="hover:text-gold transition">UTXO Clustering & Analysis</button></li>
-              <li><button onClick={() => setTab('services')} className="hover:text-gold transition">Scam Tracing Support</button></li>
-              <li><button onClick={() => setTab('services')} className="hover:text-gold transition">Digital Forensics Device Audits</button></li>
-              <li><button onClick={() => setTab('services')} className="hover:text-gold transition">Compliance Risk Profiling</button></li>
+            <ul className="space-y-1.5 text-[11px]">
+              <li><button onClick={() => setTab('services')} className="hover:text-gold transition py-1 text-left w-full cursor-pointer">UTXO Clustering & Analysis</button></li>
+              <li><button onClick={() => setTab('services')} className="hover:text-gold transition py-1 text-left w-full cursor-pointer">Scam Tracing Support</button></li>
+              <li><button onClick={() => setTab('services')} className="hover:text-gold transition py-1 text-left w-full cursor-pointer">Digital Forensics Device Audits</button></li>
+              <li><button onClick={() => setTab('services')} className="hover:text-gold transition py-1 text-left w-full cursor-pointer">Compliance Risk Profiling</button></li>
             </ul>
           </div>
 
           {/* Resources */}
           <div className="space-y-3">
             <span className="block font-display text-[9.5px] font-bold tracking-widest text-gold uppercase">Resources Hub</span>
-            <ul className="space-y-2 text-[11px]">
-              <li><button onClick={() => setTab('resources')} className="hover:text-gold transition text-left cursor-pointer">Victim Evidentiary Checklists</button></li>
-              <li><button onClick={() => setTab('resources')} className="hover:text-gold transition text-left cursor-pointer">Certified Blockchain Whitepapers</button></li>
-              <li><button onClick={() => setTab('blog')} className="hover:text-gold transition text-left cursor-pointer">Anti-phishing Technical Guides</button></li>
-              <li><button onClick={() => setTab('faq')} className="hover:text-gold transition text-left cursor-pointer">Legal Subpoena Procedures FAQ</button></li>
-              <li><button onClick={() => setTab('publisher')} className="text-gold/90 hover:text-gold transition text-left font-bold cursor-pointer flex items-center space-x-1"><span>Publisher Desk (Admin)</span></button></li>
+            <ul className="space-y-1.5 text-[11px]">
+              <li><button onClick={() => setTab('resources')} className="hover:text-gold transition py-1 text-left w-full cursor-pointer">Victim Evidentiary Checklists</button></li>
+              <li><button onClick={() => setTab('resources')} className="hover:text-gold transition py-1 text-left w-full cursor-pointer">Certified Blockchain Whitepapers</button></li>
+              <li><button onClick={() => setTab('blog')} className="hover:text-gold transition py-1 text-left w-full cursor-pointer">Anti-phishing Technical Guides</button></li>
+              <li><button onClick={() => setTab('faq')} className="hover:text-gold transition py-1 text-left w-full cursor-pointer">Legal Subpoena Procedures FAQ</button></li>
+              <li><button onClick={() => setTab('publisher')} className="text-gold/90 hover:text-gold transition py-1 text-left w-full font-bold cursor-pointer flex items-center space-x-1"><span>Publisher Desk (Admin)</span></button></li>
             </ul>
           </div>
 
