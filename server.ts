@@ -600,31 +600,45 @@ Second, we prepare the certified technical briefs conforming to strict NIST fore
   }
 });
 
-// Lazy-loaded nodemailer transporter
+// Global logs for debugging email delivery
+const emailLogs: any[] = [];
+
+// Lazy-loaded nodemailer transporter config cache
 let emailTransporter: nodemailer.Transporter | null = null;
+let cachedSmtpUser = "";
+let cachedSmtpPass = "";
+let cachedSmtpHost = "";
+let cachedSmtpPort = "";
 
 function getEmailTransporter() {
-  if (emailTransporter) return emailTransporter;
-
-  const host = process.env.SMTP_HOST;
-  const port = process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT) : 587;
-  const user = process.env.SMTP_USER;
-  const pass = process.env.SMTP_PASS;
+  const host = process.env.SMTP_HOST || "";
+  const port = process.env.SMTP_PORT || "";
+  const user = process.env.SMTP_USER || "";
+  const pass = process.env.SMTP_PASS || "";
 
   if (!host || !user || !pass) {
     console.warn("Trojan Recovery Server: SMTP email configuration is missing or incomplete. Emails will not be sent automatically. Configure SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS in the Secrets panel to activate email delivery.");
     return null;
   }
 
-  emailTransporter = nodemailer.createTransport({
-    host,
-    port,
-    secure: port === 465,
-    auth: {
-      user,
-      pass,
-    },
-  } as any);
+  // If any credentials changed, recreate the transporter
+  if (!emailTransporter || host !== cachedSmtpHost || port !== cachedSmtpPort || user !== cachedSmtpUser || pass !== cachedSmtpPass) {
+    console.log(`Trojan Recovery Server: Initializing fresh SMTP transporter for user: ${user} on host: ${host}:${port}`);
+    emailTransporter = nodemailer.createTransport({
+      host,
+      port: parseInt(port) || 587,
+      secure: parseInt(port) === 465,
+      auth: {
+        user,
+        pass,
+      },
+    } as any);
+    cachedSmtpHost = host;
+    cachedSmtpPort = port;
+    cachedSmtpUser = user;
+    cachedSmtpPass = pass;
+  }
+
   return emailTransporter;
 }
 
@@ -675,7 +689,7 @@ app.get("/api/smtp-debug", async (req, res) => {
     };
   }
 
-  return res.json(report);
+  return res.json({ ...report, emailLogs });
 });
 
 // Create new investigation requested from website
@@ -693,99 +707,121 @@ app.post("/api/investigations", async (req, res) => {
   const receiverEmail = process.env.CONTACT_RECEIVER_EMAIL || "adamkassimdusman@gmail.com";
   const transporter = getEmailTransporter();
 
+  const logEntry = {
+    timestamp: new Date().toISOString(),
+    caseId: customCaseId,
+    clientEmail: email,
+    receiverEmail,
+    smtpUserUsed: process.env.SMTP_USER || "None",
+    smtpHostUsed: process.env.SMTP_HOST || "None",
+    smtpPortUsed: process.env.SMTP_PORT || "None",
+    transporterConfigured: !!transporter,
+    status: "Pending",
+    details: null as any
+  };
+  emailLogs.push(logEntry);
+
   if (transporter) {
     try {
       const mailOptions = {
-        from: `"Trojan Recovery Portal" <${process.env.SMTP_USER}>`,
+        from: `"Trojan Recovery Contact" <${process.env.SMTP_USER}>`,
         to: receiverEmail,
-        subject: `🚨 New Trojan Recovery Intake Case [${customCaseId}] - ${scamType}`,
+        subject: `New Portal Contact Inquiry [${customCaseId}] - ${name}`,
         text: `
-Trojan Recovery Incident Report Intake
+Trojan Recovery Portal Contact Inquiry
 ======================================
-Case Number: ${customCaseId}
-Assigned Analyst: Marcus Vance
+Case ID: ${customCaseId}
 
-Client Profile:
+Sender Profile:
 -----------------
-Full Name: ${name}
-Email Address: ${email}
-Phone Number: ${phone || "Not provided"}
-Company/Organization: ${company || "Not provided"}
+Name: ${name}
+Email: ${email}
+Phone: ${phone || "Not provided"}
+Company: ${company || "Not provided"}
 Country/Location: ${country || "Not provided"}
 
-Incident Specifications:
+Inquiry Specifications:
 -----------------
-Scam Type / Focus: ${scamType}
+Inquiry Topic: ${scamType}
 
-Brief Message/Details:
+Message Details:
 -----------------
 ${message}
 
 ======================================
-This notification was automatically dispatched by Trojan Recovery API.
+This notification was automatically dispatched from the Trojan Recovery Portal.
 `,
         html: `
-<div style="font-family: Arial, sans-serif; background-color: #0b0f19; color: #f3f4f6; padding: 25px; border-radius: 8px; border: 1px solid #1e293b; max-width: 650px; margin: 0 auto;">
-  <h2 style="color: #fbbf24; border-bottom: 2px solid #1e293b; padding-bottom: 10px; margin-top: 0;">
-    🚨 New Investigation Case Filed: <span style="font-family: monospace;">${customCaseId}</span>
+<div style="font-family: Arial, sans-serif; background-color: #f8fafc; color: #1e293b; padding: 25px; border-radius: 8px; border: 1px solid #e2e8f0; max-width: 650px; margin: 0 auto;">
+  <h2 style="color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-top: 0;">
+    New Contact Inquiry: <span style="font-family: monospace;">${customCaseId}</span>
   </h2>
-  <p style="font-size: 14px; line-height: 1.5; color: #9ca3af;">
-    A new digital forensics intake record has been submitted and sealed via the Trojan Recovery portal.
+  <p style="font-size: 14px; line-height: 1.5; color: #475569;">
+    A new contact request has been received from the website portal.
   </p>
   
-  <table style="width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 20px; color: #f3f4f6;">
+  <table style="width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 20px; color: #1e293b;">
     <tr>
-      <td style="padding: 8px; background-color: #111827; border: 1px solid #1e293b; font-weight: bold; width: 35%;">Case ID</td>
-      <td style="padding: 8px; background-color: #111827; border: 1px solid #1e293b; font-family: monospace; color: #fbbf24;">${customCaseId}</td>
+      <td style="padding: 8px; background-color: #f1f5f9; border: 1px solid #e2e8f0; font-weight: bold; width: 35%;">Inquiry ID</td>
+      <td style="padding: 8px; background-color: #f1f5f9; border: 1px solid #e2e8f0; font-family: monospace; color: #2563eb;">${customCaseId}</td>
     </tr>
     <tr>
-      <td style="padding: 8px; border: 1px solid #1e293b; font-weight: bold;">Full Name</td>
-      <td style="padding: 8px; border: 1px solid #1e293b; color: #ffffff;">${name}</td>
+      <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold;">Full Name</td>
+      <td style="padding: 8px; border: 1px solid #e2e8f0;">${name}</td>
     </tr>
     <tr>
-      <td style="padding: 8px; background-color: #111827; border: 1px solid #1e293b; font-weight: bold;">Email Address</td>
-      <td style="padding: 8px; background-color: #111827; border: 1px solid #1e293b; color: #10b981; font-family: monospace;">${email}</td>
+      <td style="padding: 8px; background-color: #f1f5f9; border: 1px solid #e2e8f0; font-weight: bold;">Email Address</td>
+      <td style="padding: 8px; background-color: #f1f5f9; border: 1px solid #e2e8f0; color: #2563eb; font-family: monospace;">${email}</td>
     </tr>
     <tr>
-      <td style="padding: 8px; border: 1px solid #1e293b; font-weight: bold;">Phone Number</td>
-      <td style="padding: 8px; border: 1px solid #1e293b; color: #ffffff;">${phone || "Not provided"}</td>
+      <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold;">Phone Number</td>
+      <td style="padding: 8px; border: 1px solid #e2e8f0;">${phone || "Not provided"}</td>
     </tr>
     <tr>
-      <td style="padding: 8px; background-color: #111827; border: 1px solid #1e293b; font-weight: bold;">Company/Org</td>
-      <td style="padding: 8px; background-color: #111827; border: 1px solid #1e293b; color: #ffffff;">${company || "Not provided"}</td>
+      <td style="padding: 8px; background-color: #f1f5f9; border: 1px solid #e2e8f0; font-weight: bold;">Company/Org</td>
+      <td style="padding: 8px; background-color: #f1f5f9; border: 1px solid #e2e8f0;">${company || "Not provided"}</td>
     </tr>
     <tr>
-      <td style="padding: 8px; border: 1px solid #1e293b; font-weight: bold;">Country/Region</td>
-      <td style="padding: 8px; border: 1px solid #1e293b; color: #ffffff;">${country || "Not provided"}</td>
+      <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold;">Country/Region</td>
+      <td style="padding: 8px; border: 1px solid #e2e8f0;">${country || "Not provided"}</td>
     </tr>
     <tr>
-      <td style="padding: 8px; background-color: #111827; border: 1px solid #1e293b; font-weight: bold;">Incident Type</td>
-      <td style="padding: 8px; background-color: #111827; border: 1px solid #1e293b; color: #ef4444; font-weight: bold;">${scamType}</td>
+      <td style="padding: 8px; background-color: #f1f5f9; border: 1px solid #e2e8f0; font-weight: bold;">Inquiry Topic</td>
+      <td style="padding: 8px; background-color: #f1f5f9; border: 1px solid #e2e8f0; font-weight: bold; color: #dc2626;">${scamType}</td>
     </tr>
   </table>
 
-  <div style="background-color: #111827; border-left: 4px solid #fbbf24; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
-    <h4 style="margin-top: 0; color: #fbbf24; margin-bottom: 8px;">Brief Message Details:</h4>
-    <p style="font-size: 13.5px; line-height: 1.6; color: #e5e7eb; white-space: pre-wrap; margin: 0;">${message}</p>
+  <div style="background-color: #f8fafc; border-left: 4px solid #2563eb; padding: 15px; border-radius: 4px; margin-bottom: 20px; border: 1px solid #e2e8f0; border-left-width: 4px;">
+    <h4 style="margin-top: 0; color: #0f172a; margin-bottom: 8px;">Message Details:</h4>
+    <p style="font-size: 13.5px; line-height: 1.6; color: #334155; white-space: pre-wrap; margin: 0;">${message}</p>
   </div>
 
-  <p style="font-size: 11px; color: #6b7280; text-align: center; border-top: 1px solid #1e293b; padding-top: 15px; margin-bottom: 0;">
-    Trojan Recovery Secure Server System • Confidential Incident Reporting
+  <p style="font-size: 11px; color: #64748b; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 15px; margin-bottom: 0;">
+    Trojan Recovery Secure Portal • Confidential Message Delivery
   </p>
 </div>
 `
       };
       
-      // Dispatch email asynchronously so it doesn't block client response
-      transporter.sendMail(mailOptions).then((info) => {
-        console.log(`Trojan Recovery Server: Form submission email sent successfully to ${receiverEmail} with messageId:`, info.messageId);
-      }).catch((mailErr) => {
-        console.error("Trojan Recovery Server: Failed to send email via SMTP transporter:", mailErr);
-      });
-    } catch (err) {
+      // Dispatch email. We can await this or log the async results to the array
+      transporter.sendMail(mailOptions)
+        .then((info) => {
+          logEntry.status = "Success";
+          logEntry.details = { messageId: info.messageId, response: info.response };
+          console.log(`Trojan Recovery Server: Form submission email sent successfully to ${receiverEmail} with messageId:`, info.messageId);
+        })
+        .catch((mailErr: any) => {
+          logEntry.status = "Failed";
+          logEntry.details = { error: mailErr.message || String(mailErr), code: mailErr.code };
+          console.error("Trojan Recovery Server: Failed to send email via SMTP transporter:", mailErr);
+        });
+    } catch (err: any) {
+      logEntry.status = "Failed - Exception";
+      logEntry.details = { error: err.message || String(err) };
       console.error("Trojan Recovery Server: Error preparing or initiating email dispatch:", err);
     }
   } else {
+    logEntry.status = "Skipped - SMTP Not Configured";
     console.warn(`Trojan Recovery Server: SMTP is not configured. Form submission from ${name} was received but could not be emailed to ${receiverEmail}.`);
   }
 
