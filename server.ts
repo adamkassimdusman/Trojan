@@ -2,6 +2,10 @@ import express from "express";
 import path from "path";
 import { GoogleGenAI, Type } from "@google/genai";
 import nodemailer from "nodemailer";
+import dotenv from "dotenv";
+
+// Load environment variables
+dotenv.config();
 
 const app = express();
 app.use(express.json());
@@ -620,9 +624,59 @@ function getEmailTransporter() {
       user,
       pass,
     },
-  });
+  } as any);
   return emailTransporter;
 }
+
+// Debug endpoint to check SMTP configuration and verify connection
+app.get("/api/smtp-debug", async (req, res) => {
+  const host = process.env.SMTP_HOST || "";
+  const port = process.env.SMTP_PORT || "";
+  const user = process.env.SMTP_USER || "";
+  const pass = process.env.SMTP_PASS || "";
+  const receiver = process.env.CONTACT_RECEIVER_EMAIL || "";
+
+  const report = {
+    envVarsLoaded: {
+      SMTP_HOST: host ? `Present (${host})` : "Missing",
+      SMTP_PORT: port ? `Present (${port})` : "Missing",
+      SMTP_USER: user ? `Present (length: ${user.length})` : "Missing",
+      SMTP_PASS: pass ? `Present (length: ${pass.length})` : "Missing",
+      CONTACT_RECEIVER_EMAIL: receiver ? `Present (${receiver})` : "Missing (defaulting to adamkassimdusman@gmail.com)"
+    },
+    connectionStatus: "Not tested",
+    errorDetails: null as any
+  };
+
+  if (!host || !user || !pass) {
+    report.connectionStatus = "Skipped - environment variables missing";
+    return res.json(report);
+  }
+
+  try {
+    const testTransporter = nodemailer.createTransport({
+      host,
+      port: parseInt(port) || 587,
+      secure: parseInt(port) === 465,
+      auth: { user, pass },
+      connectionTimeout: 10000,
+    } as any);
+
+    await testTransporter.verify();
+    report.connectionStatus = "Success - SMTP server connected and authenticated successfully!";
+  } catch (err: any) {
+    report.connectionStatus = "Failed";
+    report.errorDetails = {
+      message: err.message || String(err),
+      code: err.code || null,
+      command: err.command || null,
+      response: err.response || null,
+      stack: err.stack ? err.stack.split("\n").slice(0, 3) : null
+    };
+  }
+
+  return res.json(report);
+});
 
 // Create new investigation requested from website
 app.post("/api/investigations", async (req, res) => {
