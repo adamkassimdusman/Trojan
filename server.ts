@@ -7,6 +7,65 @@ import dotenv from "dotenv";
 // Load environment variables
 dotenv.config();
 
+import fs from "fs";
+
+// Custom fallback parser for .env files that might be formatted with colons (KEY: value)
+try {
+  const envPath = path.join(process.cwd(), ".env");
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, "utf-8");
+    const lines = envContent.split(/\r?\n/);
+    for (const line of lines) {
+      const trimmed = line.trim();
+      // Skip empty lines and comments
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      
+      let key = "";
+      let val = "";
+      
+      if (trimmed.includes("=")) {
+        const parts = trimmed.split("=");
+        key = parts[0].trim();
+        val = parts.slice(1).join("=").trim();
+      } else if (trimmed.includes(":")) {
+        const colonIndex = trimmed.indexOf(":");
+        const possibleKey = trimmed.substring(0, colonIndex).trim();
+        // Check if the possibleKey has spaces - standard env keys don't have spaces
+        if (possibleKey && !possibleKey.includes(" ")) {
+          key = possibleKey;
+          val = trimmed.substring(colonIndex + 1).trim();
+        }
+      }
+      
+      if (key) {
+        // Clean up quotes
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.substring(1, val.length - 1);
+        }
+        
+        // Truncate trailing comment-like text if the user accidentally pasted "Wekesa@2026 I CREATED .ENV AND UPDATED THIS"
+        // We split by space if the remainder of the text is a comment or if they put text after the value
+        // But only if it's not a quoted string and contains something like "I CREATED"
+        if (val.includes(" ") && (val.toLowerCase().includes("i created") || val.toLowerCase().includes("updated this") || val.toLowerCase().includes("comment"))) {
+          // Keep the first token as the password/value
+          const tokens = val.split(" ");
+          if (tokens[0]) {
+            val = tokens[0];
+          }
+        }
+        
+        // Remove trailing or leading spaces
+        val = val.trim();
+        
+        // Set or override empty values
+        process.env[key] = val;
+      }
+    }
+  }
+} catch (envErr) {
+  console.warn("Trojan Recovery Server: Non-blocking error in custom .env parser:", envErr);
+}
+
 const app = express();
 app.use(express.json());
 
