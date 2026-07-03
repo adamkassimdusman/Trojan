@@ -1459,9 +1459,28 @@ export default function App() {
                   <p className="text-sm text-navy-slate">Trojan Recovery delivers rigorous forensic investigations following institutional compliance frameworks worldwide.</p>
                 </div>
 
-                <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+                <motion.div 
+                  initial="hidden"
+                  animate="visible"
+                  variants={{
+                    hidden: {},
+                    visible: {
+                      transition: {
+                        staggerChildren: 0.1
+                      }
+                    }
+                  }}
+                  className="grid grid-cols-1 gap-8 md:grid-cols-2"
+                >
                   {SERVICES.map((svc) => (
-                    <div key={svc.id} className="glow-card rounded-2xl border border-gold/15 bg-navy-light/10 p-6 md:p-8 space-y-4 flex flex-col justify-between">
+                    <motion.div 
+                      key={svc.id}
+                      variants={{
+                        hidden: { y: 15, opacity: 0 },
+                        visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 110, damping: 15 } }
+                      }}
+                      className="glow-card rounded-2xl border border-gold/15 bg-navy-light/10 p-6 md:p-8 space-y-4 flex flex-col justify-between"
+                    >
                       <div>
                         <div className="flex items-start justify-between">
                           <h3 className="font-display text-lg font-bold text-white tracking-wide uppercase border-b border-gold/10 pb-1.5">{svc.title}</h3>
@@ -1515,9 +1534,9 @@ export default function App() {
                           Request Audit
                         </button>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
-                </div>
+                </motion.div>
               </>
             )}
           </div>
