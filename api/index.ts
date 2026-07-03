@@ -743,22 +743,109 @@ app.post("/api/investigations", async (req, res) => {
 
   try {
     const activeTransporter = getTransporter();
-    await activeTransporter.sendMail({
-      from: `"Trojan Recovery" <${process.env.SMTP_USER}>`,
-      to: receiverEmail,
-      subject: `New Investigation Request - ${customCaseId}`,
-      text: `
-Case ID: ${customCaseId}
+    
+    const plainTextContent = `
+Trojan Portal - New Inbound Submission
+===========================================
+Reference ID: ${customCaseId}
 
+Client Information:
+-------------------
 Name: ${name}
 Email: ${email}
-Phone: ${phone}
-Country: ${country}
-Scam Type: ${scamType}
+Phone: ${phone || "Not provided"}
+Country: ${country || "Not provided"}
+Company: ${company || "Not provided"}
 
-Message:
+Inquiry Information:
+--------------------
+Nature of Inquiry: ${scamType}
+
+Message Details:
 ${message}
-      `,
+
+-------------------------------------------
+This inquiry was submitted via the online portal.
+`;
+
+    const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portal Notification</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f1f5f9; color: #1e293b; padding: 20px; margin: 0;">
+  <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); border: 1px solid #e2e8f0;">
+    <!-- Header -->
+    <div style="background-color: #0f172a; padding: 24px; text-align: center; border-bottom: 3px solid #10b981;">
+      <h1 style="color: #ffffff; font-size: 20px; font-weight: 700; margin: 0; letter-spacing: 0.05em; text-transform: uppercase;">Trojan Portal</h1>
+      <p style="color: #94a3b8; font-size: 13px; margin: 6px 0 0 0; font-family: monospace;">SECURE DATA INTAKE</p>
+    </div>
+    
+    <!-- Body -->
+    <div style="padding: 24px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid #e2e8f0;">
+        <span style="font-size: 14px; color: #64748b; font-weight: 500;">Reference Code</span>
+        <span style="font-size: 14px; font-family: monospace; font-weight: 700; color: #10b981; background-color: #ecfdf5; padding: 4px 8px; border-radius: 4px;">${customCaseId}</span>
+      </div>
+
+      <h3 style="color: #0f172a; font-size: 15px; font-weight: 600; margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 0.025em;">Client Details</h3>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
+        <tr>
+          <td style="padding: 8px 0; font-size: 14px; color: #64748b; width: 35%;">Name:</td>
+          <td style="padding: 8px 0; font-size: 14px; color: #0f172a; font-weight: 500;">${name}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; font-size: 14px; color: #64748b;">Email:</td>
+          <td style="padding: 8px 0; font-size: 14px; color: #2563eb; font-weight: 500; font-family: monospace;"><a href="mailto:${email}" style="color: #2563eb; text-decoration: none;">${email}</a></td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; font-size: 14px; color: #64748b;">Phone:</td>
+          <td style="padding: 8px 0; font-size: 14px; color: #0f172a;">${phone || "Not provided"}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; font-size: 14px; color: #64748b;">Country:</td>
+          <td style="padding: 8px 0; font-size: 14px; color: #0f172a;">${country || "Not provided"}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; font-size: 14px; color: #64748b;">Company:</td>
+          <td style="padding: 8px 0; font-size: 14px; color: #0f172a;">${company || "Not provided"}</td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; font-size: 14px; color: #64748b;">Inquiry Category:</td>
+          <td style="padding: 8px 0; font-size: 14px; color: #10b981; font-weight: 600;">${scamType}</td>
+        </tr>
+      </table>
+
+      <h3 style="color: #0f172a; font-size: 15px; font-weight: 600; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.025em;">Message Details</h3>
+      <div style="background-color: #f8fafc; border-left: 4px solid #10b981; padding: 16px; border-radius: 4px; font-size: 14px; line-height: 1.6; color: #334155; white-space: pre-wrap; margin-bottom: 24px;">${message || "No message content provided."}</div>
+      
+      <div style="text-align: center; margin-top: 30px;">
+        <a href="mailto:${email}" style="background-color: #0f172a; color: #ffffff; text-decoration: none; padding: 12px 24px; font-size: 14px; font-weight: 600; border-radius: 6px; display: inline-block;">Reply to Sender</a>
+      </div>
+    </div>
+    
+    <!-- Footer -->
+    <div style="background-color: #f8fafc; padding: 16px; text-align: center; border-top: 1px solid #e2e8f0;">
+      <p style="font-size: 11px; color: #94a3b8; margin: 0; line-height: 1.4;">
+        This is an automated notification from the online contact portal.<br>
+        Tracking Reference: ${customCaseId}
+      </p>
+    </div>
+  </div>
+</body>
+</html>
+`;
+
+    await activeTransporter.sendMail({
+      from: `"Support Portal Gateway" <${process.env.SMTP_USER}>`,
+      to: receiverEmail,
+      replyTo: `"${name}" <${email}>`,
+      subject: `Portal Submission - Ref [${customCaseId}]`,
+      text: plainTextContent,
+      html: htmlContent
     });
 
     // Also push to debug logs for smtp-debug compatibility
