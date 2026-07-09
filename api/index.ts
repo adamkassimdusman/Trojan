@@ -1089,7 +1089,7 @@ app.get("/llms.txt", handleAiText);
 // In production, Vite builds static assets to 'dist'. We serve them.
 const distPath = path.join(process.cwd(), 'dist');
 
-if (!process.env.VERCEL) {
+if (!process.env.VERCEL && !process.env.PASSENGER_APP_ENV) {
   if (process.env.NODE_ENV !== "production") {
     import("vite").then(({ createServer: createViteServer }) => {
       createViteServer({
