@@ -476,9 +476,15 @@ export default function App() {
   const [submittingIntake, setSubmittingIntake] = useState(false);
   const [deployedCredentials, setDeployedCredentials] = useState<{ caseId: string; passcode: string } | null>(null);
 
+  // Form field dirty/touched states for real-time validation
+  const [contactNameTouched, setContactNameTouched] = useState(false);
+  const [contactEmailTouched, setContactEmailTouched] = useState(false);
+  const [contactMsgTouched, setContactMsgTouched] = useState(false);
+
   // FAQ states
   const [openFaqId, setOpenFaqId] = useState<string | null>('fq1');
   const [faqSearch, setFaqSearch] = useState('');
+  const [faqCategory, setFaqCategory] = useState('All');
 
   // Resource Center state
   const [resourcesSearch, setResourcesSearch] = useState('');
@@ -690,11 +696,25 @@ export default function App() {
   }, [currentTab]);
 
 
+  const isEmailValid = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const contactNameError = contactNameTouched && contactName.trim() === '';
+  const contactEmailError = contactEmailTouched && (!contactEmail || !isEmailValid(contactEmail));
+  const contactMsgError = contactMsgTouched && contactMsg.trim() === '';
+
   // Submit contact incident / start an active investigation
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!contactName || !contactEmail || !contactMsg) {
-      alert('Name, Email, and Brief Message are mandatory to launch cryptographic triage.');
+    
+    // Mark all required fields as touched for instant validation response
+    setContactNameTouched(true);
+    setContactEmailTouched(true);
+    setContactMsgTouched(true);
+
+    if (!contactName.trim() || !contactEmail.trim() || !isEmailValid(contactEmail) || !contactMsg.trim()) {
       return;
     }
 
@@ -2605,11 +2625,28 @@ export default function App() {
 
         {/* TAB: FAQs */}
         {currentTab === 'faq' && (
-          <div id="faq-view" className="mx-auto max-w-4xl px-6 py-8 space-y-12">
+          <div id="faq-view" className="mx-auto max-w-4xl px-6 py-8 space-y-10">
             <div className="text-center space-y-2">
               <span className="font-mono text-xs font-bold text-gold uppercase tracking-widest block">INFORMATION CLEARINGHOUSE</span>
               <h2 className="font-display text-3xl font-bold tracking-tight text-white uppercase">FAQ Directory</h2>
               <p className="text-sm text-navy-slate">Answers to critical questions regarding custody tracking, lock protocols, and legal coordination.</p>
+            </div>
+
+            {/* FAQ Category Filter Menu */}
+            <div className="flex flex-wrap justify-center gap-2 max-w-xl mx-auto pt-2">
+              {['All', 'General', 'Technical', 'Recovery', 'Legal'].map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setFaqCategory(cat)}
+                  className={`px-4 py-1.5 rounded-full font-display text-[10.5px] font-bold uppercase tracking-wide transition duration-200 border ${
+                    faqCategory === cat 
+                      ? 'bg-gold/15 border-gold text-gold shadow-[0_0_12px_rgba(212,175,55,0.12)]' 
+                      : 'border-white/10 bg-navy-light/5 text-navy-slate hover:text-white hover:border-gold/30'
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
             </div>
 
             {/* Real-time Search Engine Input */}
@@ -2639,6 +2676,23 @@ export default function App() {
               {(() => {
                 const s = faqSearch.trim().toLowerCase();
                 const filtered = FAQS.filter(faq => {
+                  // Category match check
+                  let categoryMatches = true;
+                  if (faqCategory !== 'All') {
+                    const cat = faq.category.toLowerCase();
+                    if (faqCategory === 'Recovery') {
+                      categoryMatches = cat === 'crypto recovery';
+                    } else if (faqCategory === 'Legal') {
+                      categoryMatches = cat === 'legal';
+                    } else if (faqCategory === 'Technical') {
+                      categoryMatches = cat === 'blockchain tracing' || cat === 'security';
+                    } else if (faqCategory === 'General') {
+                      categoryMatches = cat === 'timeline & scheduling' || cat === 'scam prevention';
+                    }
+                  }
+
+                  if (!categoryMatches) return false;
+
                   if (!s) return true;
                   return (
                     faq.question.toLowerCase().includes(s) ||
@@ -2820,10 +2874,21 @@ export default function App() {
                           type="text"
                           required
                           value={contactName}
-                          onChange={(e) => setContactName(e.target.value)}
+                          onChange={(e) => {
+                            setContactName(e.target.value);
+                            setContactNameTouched(true);
+                          }}
+                          onBlur={() => setContactNameTouched(true)}
                           placeholder="Victim / Representative Name"
-                          className="w-full rounded border border-gold/20 bg-navy-dark px-3 py-2 text-xs text-white placeholder-navy-slate/40 focus:border-gold/50 outline-none"
+                          className={`w-full rounded border bg-navy-dark px-3 py-2 text-xs text-white placeholder-navy-slate/40 outline-none transition-colors duration-200 ${
+                            contactNameError 
+                              ? 'border-rose-500/50 focus:border-rose-500 bg-rose-500/5' 
+                              : 'border-gold/20 focus:border-gold/50'
+                          }`}
                         />
+                        {contactNameError && (
+                          <span className="text-rose-400 text-[9px] font-mono mt-1 block">Full Name is required.</span>
+                        )}
                       </div>
                       <div>
                         <label className="block font-display text-[9px] font-bold tracking-widest text-gold uppercase mb-1">Company / Organization</label>
@@ -2844,10 +2909,23 @@ export default function App() {
                           type="email"
                           required
                           value={contactEmail}
-                          onChange={(e) => setContactEmail(e.target.value)}
+                          onChange={(e) => {
+                            setContactEmail(e.target.value);
+                            setContactEmailTouched(true);
+                          }}
+                          onBlur={() => setContactEmailTouched(true)}
                           placeholder="Secure Contact Mail"
-                          className="w-full rounded border border-gold/20 bg-navy-dark px-3 py-2 text-xs text-white placeholder-navy-slate/40 focus:border-gold/50 outline-none"
+                          className={`w-full rounded border bg-navy-dark px-3 py-2 text-xs text-white placeholder-navy-slate/40 outline-none transition-colors duration-200 ${
+                            contactEmailError 
+                              ? 'border-rose-500/50 focus:border-rose-500 bg-rose-500/5' 
+                              : 'border-gold/20 focus:border-gold/50'
+                          }`}
                         />
+                        {contactEmailError && (
+                          <span className="text-rose-400 text-[9px] font-mono mt-1 block">
+                            {contactEmail.trim() === '' ? 'Email is required.' : 'Please enter a valid email address.'}
+                          </span>
+                        )}
                       </div>
                       <div>
                         <label className="block font-display text-[9px] font-bold tracking-widest text-gold uppercase mb-1">Phone Coordinate</label>
@@ -2868,11 +2946,22 @@ export default function App() {
                       <textarea
                         required
                         value={contactMsg}
-                        onChange={(e) => setContactMsg(e.target.value)}
+                        onChange={(e) => {
+                          setContactMsg(e.target.value);
+                          setContactMsgTouched(true);
+                        }}
+                        onBlur={() => setContactMsgTouched(true)}
                         placeholder="Please include transaction hashes, exchange communications, lost amount totals, and target blockchain names."
                         rows={4}
-                        className="w-full rounded border border-gold/20 bg-navy-dark px-3 py-2.5 text-xs text-white placeholder-navy-slate/40 focus:border-gold/50 outline-none"
+                        className={`w-full rounded border bg-navy-dark px-3 py-2.5 text-xs text-white placeholder-navy-slate/40 outline-none transition-colors duration-200 ${
+                          contactMsgError 
+                            ? 'border-rose-500/50 focus:border-rose-500 bg-rose-500/5' 
+                            : 'border-gold/20 focus:border-gold/50'
+                        }`}
                       />
+                      {contactMsgError && (
+                        <span className="text-rose-400 text-[9px] font-mono mt-1 block">Incident details are required to launch cryptographic triage.</span>
+                      )}
                     </div>
 
                     <button
