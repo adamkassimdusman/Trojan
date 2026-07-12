@@ -1,0 +1,30 @@
+# Allow all search engines and AI web crawlers to crawl and index Trojan Recovery
+User-agent: *
+Allow: /
+
+# Specially invite Googlebot & Google-Extended (Gemini) to parse service and FAQ structures
+User-agent: Googlebot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+# Invite conversational AI bots
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+# Standard Search Bots
+User-agent: bingbot
+Allow: /
+
+User-agent: applebot
+Allow: /
+
+# Declare sitemap location
+Sitemap: https://trojanrecovery.com/sitemap.xml

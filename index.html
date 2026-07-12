@@ -34,17 +34,20 @@
     <!-- Sitemap Discovery -->
     <link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml" />
 
-    <!-- Schema.org JSON-LD Structured Data for High-Trust Google Search Snippets -->
+    <!-- Schema.org JSON-LD Structured Data for High-Trust Google Search Snippets & AI Model Citations -->
     <script type="application/ld+json">
-      {
-        "@context": "https://schema.org",
-        "@type": "GovernmentService",
-        "name": "Trojan Recovery",
-        "alternateName": "Trojan Cyber Intelligence Unit",
-        "description": "Enterprise-grade Blockchain Investigation, Cryptocurrency Recovery, Cyber Intelligence, and Digital Forensics.",
-        "provider": {
-          "@type": "Organization",
-          "name": "Trojan Recovery LLC",
+      [
+        {
+          "@context": "https://schema.org",
+          "@type": "ProfessionalService",
+          "name": "Trojan Recovery",
+          "alternateName": "Trojan Cyber Intelligence Unit",
+          "logo": "https://trojanrecovery.com/favicon.svg",
+          "url": "https://trojanrecovery.com",
+          "telephone": "+1-305-555-0199",
+          "priceRange": "$$$",
+          "image": "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&q=80&w=1200",
+          "description": "Enterprise-grade Blockchain Investigation, Cryptocurrency Asset Recovery, Investment Fraud Recovery, and Digital Forensics services headquartered in Miami, Florida.",
           "address": {
             "@type": "PostalAddress",
             "streetAddress": "1830 Arbutus Drive",
@@ -53,15 +56,129 @@
             "postalCode": "33129",
             "addressCountry": "US"
           },
+          "geo": {
+            "@type": "GeoCoordinates",
+            "latitude": 25.7516,
+            "longitude": -80.2006
+          },
+          "openingHoursSpecification": {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": [
+              "Monday",
+              "Tuesday",
+              "Wednesday",
+              "Thursday",
+              "Friday",
+              "Saturday",
+              "Sunday"
+            ],
+            "opens": "00:00",
+            "closes": "23:59"
+          },
           "contactPoint": {
             "@type": "ContactPoint",
             "email": "support@trojanrecovery.com",
             "contactType": "forensic support desk",
-            "availableLanguage": "English"
+            "availableLanguage": "English",
+            "areaServed": "Worldwide"
+          },
+          "hasOfferCatalog": {
+            "@type": "OfferCatalog",
+            "name": "Forensic Recovery Services",
+            "itemListElement": [
+              {
+                "@type": "Offer",
+                "itemOffered": {
+                  "@type": "Service",
+                  "name": "Crypto Asset Recovery",
+                  "description": "Cryptographic tracing, transaction tracking, and forensic assistance in recovering stolen Bitcoin, Ethereum, USDT, and other digital assets."
+                }
+              },
+              {
+                "@type": "Offer",
+                "itemOffered": {
+                  "@type": "Service",
+                  "name": "Blockchain Analysis",
+                  "description": "Heuristic wallet clustering, flow taint analysis, and court-admissible forensic reporting for legal counsels and law enforcement."
+                }
+              },
+              {
+                "@type": "Offer",
+                "itemOffered": {
+                  "@type": "Service",
+                  "name": "Investment Fraud Recovery",
+                  "description": "Tracing funds lost to Pig Butchering schemes, fraudulent trading platforms, and coordinating recovery freezes with top centralized exchanges."
+                }
+              },
+              {
+                "@type": "Offer",
+                "itemOffered": {
+                  "@type": "Service",
+                  "name": "Wallet Access Restoration",
+                  "description": "Secure, hardware-based recovery and cryptographic restoration for compromised or inaccessible private keys and seed phrases."
+                }
+              }
+            ]
           }
         },
-        "serviceType": "Blockchain Forensics & Asset Recovery Assistance"
-      }
+        {
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          "name": "Trojan Recovery",
+          "url": "https://trojanrecovery.com",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://trojanrecovery.com/?search={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "Can digital tracking guarantee recovery?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Blockchain tracing acts as the forensic foundation. It establishes where assets are held (often inside centralized exchanges or cold storage). Recovery is a dual-track process matching structural technical proof with legal locks, freeze petitions, or law-enforcement subpoenas. While recovery can never be guaranteed due to variations in jurisdiction, our visual evidence packages significantly maximize recovery success."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How does Trojan Recovery identify anonymous wallet owners?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "We analyze transaction behaviors, wallet clusters, and on-chain relationships. We also examine exchange deposit logs, monitor exit-ramp integrations, and collect off-chain OSINT data. Cybercriminals ultimately transfer assets to centralized, KYC-restricted exchanges to cash out, enabling us to link operational wallets back to real-life owners."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Do you work directly with global police forces and courtrooms?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes, our reports align with federal evidence standards. We routinely write court-ready forensic affidavits, work with global prosecutors, and coordinate operations with the cyber divisions of major law enforcement agencies worldwide."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "Is it possible to track stolen Bitcoin or USDT run through mixers?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "Yes. Modern blockchain analytics leverage advanced state-of-the-art flow taint algorithms and ring-signature tracing to de-obfuscate transaction patterns inside mixers. We isolate gas characteristics, timing similarities, and multi-hop outputs to establish high-confidence links between input and output wallets."
+              }
+            },
+            {
+              "@type": "Question",
+              "name": "How does Trojan Recovery help victims of 'Pig Butchering' investment scams?",
+              "acceptedAnswer": {
+                "@type": "Answer",
+                "text": "We trace the movement of funds from initial credit card or banking purchases through the fraudulent platform to centralized off-ramp exchanges. Our certified cyber analysts compile interactive visual graphs and structured reporting to assist state, federal, or international law enforcement in recovering assets."
+              }
+            }
+          ]
+        }
+      ]
     </script>
 
     <script>
