@@ -206,6 +206,82 @@ interface ServerBlogPost {
   status: 'draft' | 'awaiting_approval' | 'published';
 }
 
+interface ServerFaqItem {
+  id: string;
+  question: string;
+  answer: string;
+  category: string;
+}
+
+const db_faqs: ServerFaqItem[] = [
+  {
+    id: 'fq1',
+    question: 'Can digital tracking guarantee recovery?',
+    answer: 'Blockchain tracing acts as the forensic foundation. It establishes where assets are held (often inside centralized exchanges or cold storage). Recovery is a dual-track process matching structural technical proof with legal locks, freeze petitions, or law-enforcement subpoenas. While recovery can never be guaranteed due to variations in jurisdiction, our visual evidence packages significantly maximize recovery success, as demonstrated by our historic cases.',
+    category: 'Crypto Recovery'
+  },
+  {
+    id: 'fq2',
+    question: 'How does Trojan Recovery identify anonymous wallet owners?',
+    answer: 'We analyze transaction behaviors, wallet clusters, and on-chain relationships. We also examine exchange deposit logs, monitor exit-ramp integrations, and collect off-chain OSINT data. Cybercriminals ultimately transfer assets to centralized, KYC-restricted exchanges to cash out, enabling us to link operational wallets back to real-life owners.',
+    category: 'Blockchain Tracing'
+  },
+  {
+    id: 'fq3',
+    question: 'What is the standard timeline for an international investigation?',
+    answer: 'General tracing operations are concluded within 3 to 7 business days, providing a complete transaction tree. Complex cases involving multi-asset routing or mixer protocols may require 14 days of deep forensic auditing. Legal coordinates, subpoenas, and actual asset recoveries operate on timelines bound to federal courts and jurisdictional prosecutors.',
+    category: 'Timeline & Scheduling'
+  },
+  {
+    id: 'fq4',
+    question: 'Do you work directly with global police forces and courtrooms?',
+    answer: 'Yes, our reports align with federal evidence standards. We routinely write court-ready forensic affidavits, work with global prosecutors, and coordinate operations with the cyber divisions of major law enforcement agencies worldwide.',
+    category: 'Legal'
+  },
+  {
+    id: 'fq5',
+    question: 'How do you preserve client confidentiality and evidence privacy?',
+    answer: 'All case evidence and files are secured on air-gapped systems implementing rigorous AES-256 data protection. We follow GDPR guidelines, maintain ISO/IEC 27001 secure storage standards, and require mutual non-disclosure agreements before reviewing case files.',
+    category: 'Security'
+  },
+  {
+    id: 'fq6',
+    question: 'What should I do if my MetaMask or Trust Wallet seed phrase is compromised?',
+    answer: 'Immediately move any remaining tokens or NFTs to a newly created cold storage or hardware wallet address. Do not use the compromised wallet for any future transactions. Revoke any infinite token or smart contract approvals, export your transaction history, and contact the Trojan Recovery forensic desk to trace the exact movement of stolen assets.',
+    category: 'Security'
+  },
+  {
+    id: 'fq7',
+    question: 'Can stolen cryptocurrency be recovered from smart contract liquidity pools?',
+    answer: 'Yes. If funds are sent to a protocol with active admin control or an upgradable proxy contract design, we can collaborate with the core development foundation or deploy evidence demonstrating theft to coordinate a recovery path. If locked in standard decentralized pools, tracing provides the necessary forensic evidence to sub-serve target platforms or exit gateways.',
+    category: 'Crypto Recovery'
+  },
+  {
+    id: 'fq8',
+    question: 'Is it possible to track stolen Bitcoin or USDT run through mixers?',
+    answer: 'Yes. Modern blockchain analytics leverage advanced state-of-the-art flow taint algorithms and ring-signature tracing to de-obfuscate transaction patterns inside mixers. We isolate gas characteristics, timing similarities, and multi-hop outputs to establish high-confidence links between input and output wallets.',
+    category: 'Blockchain Tracing'
+  },
+  {
+    id: 'fq9',
+    question: 'How does Trojan Recovery help victims of "Pig Butchering" investment scams?',
+    answer: 'We trace the movement of funds from initial credit card or banking purchases through the fraudulent platform to centralized off-ramp exchanges. Our certified cyber analysts compile interactive visual graphs and structured reporting to assist state, federal, or international law enforcement in recovering assets.',
+    category: 'Scam Prevention'
+  },
+  {
+    id: 'fq10',
+    question: 'Why do litigation attorneys request certified blockchain forensic reports?',
+    answer: 'Courts require admissible evidence that maintains clear chain of custody under US Federal Evidence rules. Our forensic reports include cryptographically verified timestamps, transaction hashes, and formal analyst-signed affidavits suitable for legal preservation, civil subpoenas, and asset attachment orders.',
+    category: 'Legal'
+  },
+  {
+    id: 'fq11',
+    question: 'Does Trojan Recovery operate internationally or only within the USA?',
+    answer: 'We operate internationally with clients, attorneys, and exchanges in over 40 countries. Our specialists navigate different jurisdictional processes, executing international asset tracings and assisting clients in translating reports for domestic law enforcement agencies.',
+    category: 'Legal'
+  }
+];
+
 const db_blogs: ServerBlogPost[] = [
   {
     id: 'b1',
@@ -557,6 +633,101 @@ app.post("/api/blogs/delete", (req, res) => {
     db_blogs.splice(idx, 1);
   }
   return res.json({ success: true, blogs: db_blogs });
+});
+
+// FAQ REST API Implementation
+app.get("/api/faqs", (req, res) => {
+  return res.json({ faqs: db_faqs });
+});
+
+app.post("/api/faqs", (req, res) => {
+  const { question, answer, category } = req.body;
+  
+  if (!question || !answer || !category) {
+    return res.status(400).json({ error: "Missing required FAQ elements." });
+  }
+
+  const newFaq: ServerFaqItem = {
+    id: "faq_" + Date.now().toString(36),
+    question,
+    answer,
+    category
+  };
+
+  db_faqs.unshift(newFaq);
+  return res.json({ success: true, faq: newFaq, faqs: db_faqs });
+});
+
+app.post("/api/faqs/delete", (req, res) => {
+  const { id } = req.body;
+  if (!id) {
+    return res.status(400).json({ error: "FAQ ID is required for deletion." });
+  }
+  const idx = db_faqs.findIndex(f => f.id === id);
+  if (idx !== -1) {
+    db_faqs.splice(idx, 1);
+  }
+  return res.json({ success: true, faqs: db_faqs });
+});
+
+// AI FAQ Generator via Gemini
+app.post("/api/faqs/generate", async (req, res) => {
+  const { prompt: userPrompt, category: userCategory } = req.body;
+  if (!userPrompt) {
+    return res.status(400).json({ error: "A target keyword or topic is required to generate FAQs." });
+  }
+
+  const targetCategory = userCategory || "Crypto Recovery";
+
+  if (!ai) {
+    // Elegant fallback for local/missing key scenario
+    const generatedQuestion = `How does Trojan Recovery solve ${userPrompt.substring(0, 45)}${userPrompt.length > 45 ? "..." : ""} challenges?`;
+    const fallbackFaq = {
+      question: generatedQuestion,
+      answer: `Addressing concerns related to "${userPrompt}" requires systematic forensic tracking. At Trojan Recovery, we utilize advanced heuristic clustering algorithms to analyze on-chain transaction flows. By isolating withdrawal footprints, identifying multi-wallet links, and tracking compromised assets down to centralized exchange off-ramps, we compile comprehensive evidence dossiers. These certified visual tracing charts empower victims and legal representatives to file rapid freeze petitions and coordinate subpoenas with law enforcement worldwide to safeguard lost capital.`,
+      category: targetCategory
+    };
+    return res.json({ success: true, faq: fallbackFaq, isFallback: true });
+  }
+
+  try {
+    const systemPrompt = `You are an elite blockchain forensics and SEO strategist for Trojan Cyber Intelligence (trojanrecovery.com).
+    Generate an extremely engaging, SEO-optimized, and highly informative FAQ item about the following topic: "${userPrompt}".
+    The FAQ is designed to rank high on search engines (Google, Bing) and AI search engines (like Gemini, Perplexity) as an authoritative recommendation.
+    
+    Make the question interesting and relevant to user search intent.
+    The answer must be thorough (2-3 sentences), highly authoritative, and professionally convincing.
+    
+    Incorporate relevant keywords depending on the selected topic, such as "crypto asset recovery", "blockchain analysis", "investment fraud recovery", "wallet access restoration", "recover stolen cryptocurrency USA", or "blockchain tracing services Miami Florida".
+    
+    Structure your response as a JSON object with the following fields:
+    {
+      "question": "An engaging, click-worthy search-oriented question",
+      "answer": "A detailed, professional, and trustworthy answer demonstrating deep technical expertise",
+      "category": "${targetCategory}"
+    }
+    Generate only the raw JSON, no markdown formatting.`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: systemPrompt,
+      config: {
+        responseMimeType: "application/json"
+      }
+    });
+
+    const parsed = JSON.parse(response.text || "{}");
+    return res.json({ success: true, faq: parsed });
+  } catch (err) {
+    console.error("AI FAQ generator failed, reverting to fallback:", err);
+    const generatedQuestion = `How does Trojan Recovery resolve ${userPrompt.substring(0, 45)}${userPrompt.length > 45 ? "..." : ""} issues?`;
+    const fallbackFaq = {
+      question: generatedQuestion,
+      answer: `Addressing concerns related to "${userPrompt}" requires systematic forensic tracking. At Trojan Recovery, we utilize advanced heuristic clustering algorithms to analyze on-chain transaction flows. By isolating withdrawal footprints, identifying multi-wallet links, and tracking compromised assets down to centralized exchange off-ramps, we compile comprehensive evidence dossiers. These certified visual tracing charts empower victims and legal representatives to file rapid freeze petitions and coordinate subpoenas with law enforcement worldwide to safeguard lost capital.`,
+      category: targetCategory
+    };
+    return res.json({ success: true, faq: fallbackFaq, isFallback: true });
+  }
 });
 
 // Helper to assign a high-quality, category-specific Unsplash image

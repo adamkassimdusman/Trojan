@@ -35,7 +35,7 @@ import TestimonialCarousel from './components/TestimonialCarousel';
 import TrustBox from './components/TrustBox';
 import { SERVICES } from './data/servicesData';
 import { CASE_STUDIES, RESOURCES, FAQS, TESTIMONIALS, BLOG_POSTS } from './data/resourcesData';
-import { NewsArticle, BlogPost } from './types';
+import { NewsArticle, BlogPost, FaqItem } from './types';
 import { motion } from 'motion/react';
 
 // Simple Markdown parser for React to fix star and hash markdown formatting
@@ -206,6 +206,10 @@ export default function App() {
   const [blogCategory, setBlogCategory] = useState('All');
   const [blogSearch, setBlogSearch] = useState('');
 
+  // FAQ dynamic state
+  const [faqsList, setFaqsList] = useState<FaqItem[]>([]);
+  const [faqsLoading, setFaqsLoading] = useState(true);
+
 
 
   // Fallback news generator for static deployments
@@ -313,6 +317,12 @@ export default function App() {
       if (needsSeed) {
         localStorage.setItem('sc_blogs', JSON.stringify(getStaticBlogsFallback()));
       }
+
+      // Seed FAQs
+      const storedFaqs = localStorage.getItem('sc_faqs');
+      if (!storedFaqs) {
+        localStorage.setItem('sc_faqs', JSON.stringify(FAQS));
+      }
     } catch (e) {
       console.warn("localStorage init failed, running purely in memory", e);
     }
@@ -323,6 +333,18 @@ export default function App() {
   const [aiSelectedCategory, setAiSelectedCategory] = useState('Cryptocurrency Recovery');
   const [isGeneratingAiDoc, setIsGeneratingAiDoc] = useState(false);
   const [aiTempPost, setAiTempPost] = useState<any | null>(null);
+
+  // Publisher FAQ management states
+  const [faqInputQuestion, setFaqInputQuestion] = useState('');
+  const [faqInputAnswer, setFaqInputAnswer] = useState('');
+  const [faqInputCategory, setFaqInputCategory] = useState('Crypto Recovery');
+  const [isSubmittingManualFaq, setIsSubmittingManualFaq] = useState(false);
+
+  const [aiFaqTopicPrompt, setAiFaqTopicPrompt] = useState('');
+  const [aiFaqSelectedCategory, setAiFaqSelectedCategory] = useState('Crypto Recovery');
+  const [isGeneratingAiFaq, setIsGeneratingAiFaq] = useState(false);
+  const [aiTempFaq, setAiTempFaq] = useState<any | null>(null);
+  const [publisherSubTab, setPublisherSubTab] = useState<'dossiers' | 'faqs'>('dossiers');
 
   // Publisher Admin login states
   const [adminUsername, setAdminUsername] = useState('');
@@ -573,11 +595,43 @@ export default function App() {
     }
   };
 
+  // Fetch FAQ list
+  const loadFaqs = async () => {
+    setFaqsLoading(true);
+    try {
+      const res = await fetch('/api/faqs');
+      if (!res.ok) throw new Error("Server error " + res.status);
+      const data = await res.json();
+      if (data.faqs) {
+        setFaqsList(data.faqs);
+        localStorage.setItem('sc_faqs', JSON.stringify(data.faqs));
+      } else {
+        throw new Error("No faqs field");
+      }
+    } catch (err) {
+      console.warn('Reverting to static FAQ local fallback:', err);
+      try {
+        const stored = localStorage.getItem('sc_faqs');
+        if (stored) {
+          setFaqsList(JSON.parse(stored));
+        } else {
+          setFaqsList(FAQS);
+        }
+      } catch (e) {
+        console.warn("Could not parse client-side FAQs", e);
+        setFaqsList(FAQS);
+      }
+    } finally {
+      setFaqsLoading(false);
+    }
+  };
+
   useEffect(() => {
     initializeLocalStorage();
     loadNews();
     loadBlogs();
     loadAdminBlogs();
+    loadFaqs();
   }, []);
 
   // HTML5 Canvas Network Node visualizer
@@ -912,6 +966,114 @@ export default function App() {
       }
     } catch (_) {
       alert("Failed connecting to administrative delete registry.");
+    }
+  };
+
+  // FAQ Management handlers
+  const handleGenerateAiFaq = async () => {
+    if (!aiFaqTopicPrompt) {
+      alert("Please input a key SEO topic or question concept.");
+      return;
+    }
+    setIsGeneratingAiFaq(true);
+    setAiTempFaq(null);
+    try {
+      const res = await fetch('/api/faqs/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: aiFaqTopicPrompt,
+          category: aiFaqSelectedCategory
+        })
+      });
+      const data = await res.json();
+      if (data.success && data.faq) {
+        setAiTempFaq(data.faq);
+      } else {
+        alert(data.error || "Failed to generate AI FAQ.");
+      }
+    } catch (_) {
+      alert("Failed connecting to Trojan intelligence engines.");
+    } finally {
+      setIsGeneratingAiFaq(false);
+    }
+  };
+
+  const handleSaveAiFaq = async () => {
+    if (!aiTempFaq) return;
+    try {
+      const res = await fetch('/api/faqs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: aiTempFaq.question,
+          answer: aiTempFaq.answer,
+          category: aiTempFaq.category
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAiTempFaq(null);
+        setAiFaqTopicPrompt('');
+        alert("SEO-friendly FAQ item successfully saved and posted to live directory!");
+        await loadFaqs();
+      } else {
+        alert(data.error || "Failed to publish AI FAQ.");
+      }
+    } catch (_) {
+      alert("Connection exception during FAQ storage.");
+    }
+  };
+
+  const handlePublishManualFaq = async () => {
+    if (!faqInputQuestion || !faqInputAnswer) {
+      alert("Both Question and Answer are required.");
+      return;
+    }
+    setIsSubmittingManualFaq(true);
+    try {
+      const res = await fetch('/api/faqs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          question: faqInputQuestion,
+          answer: faqInputAnswer,
+          category: faqInputCategory
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setFaqInputQuestion('');
+        setFaqInputAnswer('');
+        alert("FAQ item posted successfully!");
+        await loadFaqs();
+      } else {
+        alert(data.error || "Failed to publish manual FAQ.");
+      }
+    } catch (_) {
+      alert("Connection exception during manual FAQ submission.");
+    } finally {
+      setIsSubmittingManualFaq(false);
+    }
+  };
+
+  const handleDeleteFaq = async (id: string) => {
+    if (!confirm("Are you sure you want to permanently delete this FAQ item?")) return;
+    try {
+      const res = await fetch('/api/faqs/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert("FAQ item deleted successfully.");
+        await loadFaqs();
+      } else {
+        alert(data.error || "Failed to delete FAQ.");
+      }
+    } catch (_) {
+      alert("Connection exception during FAQ deletion.");
     }
   };
 
@@ -1717,6 +1879,7 @@ export default function App() {
                           src={article.imageUrl} 
                           alt={article.title} 
                           referrerPolicy="no-referrer"
+                          loading="lazy"
                           className="w-full max-h-[380px] object-cover opacity-85" 
                         />
                       </div>
@@ -1964,6 +2127,7 @@ export default function App() {
                               src={news.imageUrl} 
                               alt={news.title}
                               referrerPolicy="no-referrer"
+                              loading="lazy"
                               className="h-40 w-full object-cover border-b border-white/5 opacity-80 hover:opacity-100 transition"
                             />
                           )}
@@ -2106,6 +2270,7 @@ export default function App() {
                               src={post.imageUrl} 
                               alt={post.title} 
                               referrerPolicy="no-referrer"
+                              loading="lazy"
                               className="w-full h-full max-h-[380px] object-cover opacity-85 hover:opacity-100 transition duration-300" 
                             />
                             <div className="absolute inset-0 bg-gradient-to-t from-[#050b14] via-transparent to-transparent opacity-60"></div>
@@ -2117,6 +2282,7 @@ export default function App() {
                           <img 
                             src={post.author.avatarUrl} 
                             alt={post.author.name} 
+                            loading="lazy"
                             className="h-10 w-10 rounded-full border border-gold/20"
                           />
                           <div>
@@ -2156,6 +2322,7 @@ export default function App() {
                             src={post.imageUrl || "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&q=80&w=300"} 
                             alt={post.title} 
                             referrerPolicy="no-referrer"
+                            loading="lazy"
                             className="w-full h-full object-cover opacity-80 group-hover:opacity-100 group-hover:scale-105 transition duration-300"
                           />
                         </div>
@@ -2283,305 +2450,533 @@ export default function App() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                  
-                  {/* Creator Forms (AI & Manual) */}
-                  <div className="lg:col-span-2 space-y-8">
+                <div className="flex border-b border-white/5 pb-1 gap-6 mb-8">
+                  <button
+                    onClick={() => setPublisherSubTab('dossiers')}
+                    className={`pb-3 text-xs font-bold font-mono uppercase tracking-widest border-b-2 transition duration-200 ${
+                      publisherSubTab === 'dossiers'
+                        ? 'border-gold text-gold'
+                        : 'border-transparent text-navy-slate hover:text-white'
+                    }`}
+                  >
+                    Dossier Management
+                  </button>
+                  <button
+                    onClick={() => setPublisherSubTab('faqs')}
+                    className={`pb-3 text-xs font-bold font-mono uppercase tracking-widest border-b-2 transition duration-200 ${
+                      publisherSubTab === 'faqs'
+                        ? 'border-gold text-gold'
+                        : 'border-transparent text-navy-slate hover:text-white'
+                    }`}
+                  >
+                    FAQ Database Manager
+                  </button>
+                </div>
+
+                {publisherSubTab === 'dossiers' ? (
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     
-                    {/* 1. AI WRITER ASSIST MODULE */}
-                    <div className="rounded-xl border border-gold/25 bg-navy-light/15 p-6 space-y-6 relative overflow-hidden backdrop-blur-sm">
-                      <div className="absolute top-0 right-0 h-24 w-24 bg-gold/5 rounded-full blur-2xl pointer-events-none"></div>
+                    {/* Creator Forms (AI & Manual) */}
+                    <div className="lg:col-span-2 space-y-8">
                       
-                      <div className="flex items-center space-x-2">
-                        <Sparkles className="h-5 w-5 text-gold" />
-                        <h2 className="font-display text-base font-extrabold text-white uppercase tracking-wider">AI Forensic Writer Assist</h2>
-                      </div>
-                      
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-xs font-bold font-mono text-gold uppercase mb-1">Target Analysis Objective or Incident Prompt</label>
-                          <input
-                            type="text"
-                            placeholder="e.g. Broward County $1.2M multi-sig treasury drain and reverse transaction tracking ledger"
-                            value={aiTopicPrompt}
-                            onChange={(e) => setAiTopicPrompt(e.target.value)}
-                            className="w-full bg-navy-dark border border-white/10 rounded-sm p-3 text-xs text-white outline-none focus:border-gold transition"
-                          />
+                      {/* 1. AI WRITER ASSIST MODULE */}
+                      <div className="rounded-xl border border-gold/25 bg-navy-light/15 p-6 space-y-6 relative overflow-hidden backdrop-blur-sm">
+                        <div className="absolute top-0 right-0 h-24 w-24 bg-gold/5 rounded-full blur-2xl pointer-events-none"></div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <Sparkles className="h-5 w-5 text-gold" />
+                          <h2 className="font-display text-base font-extrabold text-white uppercase tracking-wider">AI Forensic Writer Assist</h2>
                         </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        
+                        <div className="space-y-4">
                           <div>
-                            <label className="block text-xs font-bold font-mono text-gold uppercase mb-1">Dossier Category focus</label>
-                            <select
-                              value={aiSelectedCategory}
-                              onChange={(e) => handleCategoryChange(e.target.value)}
-                              className="w-full bg-navy-dark border border-white/10 rounded-sm p-2.5 text-xs text-white outline-none focus:border-gold"
-                            >
-                              <option value="Cryptocurrency Recovery">Cryptocurrency Recovery</option>
-                              <option value="Blockchain Investigations">Blockchain Investigations</option>
-                              <option value="Cybersecurity">Cybersecurity</option>
-                              <option value="Scam Prevention">Scam Prevention</option>
-                              <option value="Digital Forensics">Digital Forensics</option>
-                              <option value="Asset Tracing">Asset Tracing</option>
-                              <option value="Regulatory Compliance">Regulatory Compliance</option>
-                            </select>
+                            <label className="block text-xs font-bold font-mono text-gold uppercase mb-1">Target Analysis Objective or Incident Prompt</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Broward County $1.2M multi-sig treasury drain and reverse transaction tracking ledger"
+                              value={aiTopicPrompt}
+                              onChange={(e) => setAiTopicPrompt(e.target.value)}
+                              className="w-full bg-navy-dark border border-white/10 rounded-sm p-3 text-xs text-white outline-none focus:border-gold transition"
+                            />
                           </div>
 
-                          <div className="flex items-end">
-                            <button
-                              onClick={handleGenerateAiBlog}
-                              disabled={isGeneratingAiDoc}
-                              className="w-full h-[38px] rounded-sm bg-gradient-to-r from-gold to-gold-hover hover:opacity-90 font-display text-[10.5px] font-bold tracking-widest text-[#050b14] uppercase transition disabled:opacity-50"
-                            >
-                              {isGeneratingAiDoc ? "Constructing Analysis..." : "Generate Technical Dossier with AI ✨"}
-                            </button>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-bold font-mono text-gold uppercase mb-1">Dossier Category focus</label>
+                              <select
+                                value={aiSelectedCategory}
+                                onChange={(e) => handleCategoryChange(e.target.value)}
+                                className="w-full bg-navy-dark border border-white/10 rounded-sm p-2.5 text-xs text-white outline-none focus:border-gold"
+                              >
+                                <option value="Cryptocurrency Recovery">Cryptocurrency Recovery</option>
+                                <option value="Blockchain Investigations">Blockchain Investigations</option>
+                                <option value="Cybersecurity">Cybersecurity</option>
+                                <option value="Scam Prevention">Scam Prevention</option>
+                                <option value="Digital Forensics">Digital Forensics</option>
+                                <option value="Asset Tracing">Asset Tracing</option>
+                                <option value="Regulatory Compliance">Regulatory Compliance</option>
+                              </select>
+                            </div>
+
+                            <div className="flex items-end">
+                              <button
+                                onClick={handleGenerateAiBlog}
+                                disabled={isGeneratingAiDoc}
+                                className="w-full h-[38px] rounded-sm bg-gradient-to-r from-gold to-gold-hover hover:opacity-90 font-display text-[10.5px] font-bold tracking-widest text-[#050b14] uppercase transition disabled:opacity-50"
+                              >
+                                {isGeneratingAiDoc ? "Constructing Analysis..." : "Generate Technical Dossier with AI ✨"}
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
 
-                      {/* AI PREVIEW SCREEN */}
-                      {aiTempPost && (
-                        <div className="rounded border border-gold/15 bg-[#050b14] p-5 space-y-4 animate-in fade-in duration-300">
-                          <div className="flex items-center justify-between border-b border-white/5 pb-2">
-                            <span className="font-mono text-[10px] text-gold font-bold uppercase">EDITORIAL REVIEW PANEL • LIVE MODIFICATION</span>
-                            <span className="text-navy-slate font-mono text-[9px] uppercase">{aiTempPost.readTime}</span>
-                          </div>
-
-                          <div className="space-y-4 text-left">
-                            <div>
-                              <label className="block text-[10px] font-bold font-mono text-gold uppercase tracking-wider mb-1">Article Title</label>
-                              <input
-                                type="text"
-                                value={aiTempPost.title || ''}
-                                onChange={(e) => setAiTempPost({ ...aiTempPost, title: e.target.value })}
-                                className="w-full bg-navy-dark border border-gold/20 rounded p-2.5 text-xs text-white outline-none focus:border-gold font-sans font-bold"
-                              />
+                        {/* AI PREVIEW SCREEN */}
+                        {aiTempPost && (
+                          <div className="rounded border border-gold/15 bg-[#050b14] p-5 space-y-4 animate-in fade-in duration-300">
+                            <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                              <span className="font-mono text-[10px] text-gold font-bold uppercase">EDITORIAL REVIEW PANEL • LIVE MODIFICATION</span>
+                              <span className="text-navy-slate font-mono text-[9px] uppercase">{aiTempPost.readTime}</span>
                             </div>
 
-                            <div>
-                              <label className="block text-[10px] font-bold font-mono text-gold uppercase tracking-wider mb-1">Meta Summary (Brief excerpt)</label>
-                              <input
-                                type="text"
-                                value={aiTempPost.summary || ''}
-                                onChange={(e) => setAiTempPost({ ...aiTempPost, summary: e.target.value })}
-                                className="w-full bg-navy-dark border border-gold/20 rounded p-2.5 text-xs text-[#8892B0] outline-none focus:border-gold font-sans"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-[10px] font-bold font-mono text-gold uppercase tracking-wider mb-1">Comprehensive Forensic Content (Deep-Dive Journal)</label>
-                              <textarea
-                                rows={6}
-                                value={aiTempPost.content || ''}
-                                onChange={(e) => setAiTempPost({ ...aiTempPost, content: e.target.value })}
-                                className="w-full bg-navy-dark border border-gold/20 rounded p-2.5 text-xs text-white outline-none focus:border-gold font-sans leading-relaxed"
-                              />
-                            </div>
-
-                            <div>
-                              <label className="block text-[10px] font-bold font-mono text-gold uppercase tracking-wider mb-1">Dossier Keywords (Separated by commas)</label>
-                              <input
-                                type="text"
-                                value={Array.isArray(aiTempPost.tags) ? aiTempPost.tags.join(', ') : (aiTempPost.tags || '')}
-                                onChange={(e) => setAiTempPost({ ...aiTempPost, tags: e.target.value.split(',').map((s: string) => s.trim()) })}
-                                className="w-full bg-navy-dark border border-gold/20 rounded p-2.5 text-xs text-white outline-none focus:border-gold font-mono"
-                              />
-                            </div>
-
-                            {aiTempPost.imageUrl && (
+                            <div className="space-y-4 text-left">
                               <div>
-                                <label className="block text-[10px] font-bold font-mono text-gold uppercase tracking-wider mb-1.5">Lively Cyber Forensic Asset (Generated Post Image)</label>
-                                <div className="relative rounded overflow-hidden border border-gold/15 bg-navy aspect-video max-h-48">
-                                  <img 
-                                    src={aiTempPost.imageUrl} 
-                                    alt="Lively cyber assets placeholder" 
-                                    className="w-full h-full object-cover opacity-90 hover:opacity-100 transition"
-                                    referrerPolicy="no-referrer"
-                                  />
-                                  <div className="absolute inset-x-0 bottom-0 bg-black/75 p-2 border-t border-white/5 flex items-center justify-between text-[8.5px] font-mono text-gold">
-                                    <span className="truncate max-w-xs">{aiTempPost.imageUrl}</span>
-                                    <span className="shrink-0 uppercase bg-gold/10 text-gold px-1 rounded">Visual Matrix Stable</span>
+                                <label className="block text-[10px] font-bold font-mono text-gold uppercase tracking-wider mb-1">Article Title</label>
+                                <input
+                                  type="text"
+                                  value={aiTempPost.title || ''}
+                                  onChange={(e) => setAiTempPost({ ...aiTempPost, title: e.target.value })}
+                                  className="w-full bg-navy-dark border border-gold/20 rounded p-2.5 text-xs text-white outline-none focus:border-gold font-sans font-bold"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] font-bold font-mono text-gold uppercase tracking-wider mb-1">Meta Summary (Brief excerpt)</label>
+                                <input
+                                  type="text"
+                                  value={aiTempPost.summary || ''}
+                                  onChange={(e) => setAiTempPost({ ...aiTempPost, summary: e.target.value })}
+                                  className="w-full bg-navy-dark border border-gold/20 rounded p-2.5 text-xs text-[#8892B0] outline-none focus:border-gold font-sans"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] font-bold font-mono text-gold uppercase tracking-wider mb-1">Comprehensive Forensic Content (Deep-Dive Journal)</label>
+                                <textarea
+                                  rows={6}
+                                  value={aiTempPost.content || ''}
+                                  onChange={(e) => setAiTempPost({ ...aiTempPost, content: e.target.value })}
+                                  className="w-full bg-navy-dark border border-gold/20 rounded p-2.5 text-xs text-white outline-none focus:border-gold font-sans leading-relaxed"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-[10px] font-bold font-mono text-gold uppercase tracking-wider mb-1">Dossier Keywords (Separated by commas)</label>
+                                <input
+                                  type="text"
+                                  value={Array.isArray(aiTempPost.tags) ? aiTempPost.tags.join(', ') : (aiTempPost.tags || '')}
+                                  onChange={(e) => setAiTempPost({ ...aiTempPost, tags: e.target.value.split(',').map((s: string) => s.trim()) })}
+                                  className="w-full bg-navy-dark border border-gold/20 rounded p-2.5 text-xs text-white outline-none focus:border-gold font-mono"
+                                />
+                              </div>
+
+                              {aiTempPost.imageUrl && (
+                                <div>
+                                  <label className="block text-[10px] font-bold font-mono text-gold uppercase tracking-wider mb-1.5">Lively Cyber Forensic Asset (Generated Post Image)</label>
+                                  <div className="relative rounded overflow-hidden border border-gold/15 bg-navy aspect-video max-h-48">
+                                    <img 
+                                      src={aiTempPost.imageUrl} 
+                                      alt="Lively cyber assets placeholder" 
+                                      loading="lazy"
+                                      className="w-full h-full object-cover opacity-90 hover:opacity-100 transition"
+                                      referrerPolicy="no-referrer"
+                                    />
+                                    <div className="absolute inset-x-0 bottom-0 bg-black/75 p-2 border-t border-white/5 flex items-center justify-between text-[8.5px] font-mono text-gold">
+                                      <span className="truncate max-w-xs">{aiTempPost.imageUrl}</span>
+                                      <span className="shrink-0 uppercase bg-gold/10 text-gold px-1 rounded">Visual Matrix Stable</span>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                            )}
+                              )}
+                            </div>
+
+                            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                              <button
+                                onClick={() => handleSaveAiBlog(true)}
+                                className="flex-1 rounded-sm bg-emerald-600 hover:bg-emerald-500 py-2.5 text-[10px] font-bold tracking-widest text-white uppercase transition"
+                              >
+                                Approve & Publish Live Forensic Report
+                              </button>
+                              <button
+                                onClick={() => handleSaveAiBlog(false)}
+                                className="flex-1 rounded border border-gold/40 text-gold hover:bg-gold/5 py-2.5 text-[10px] font-bold tracking-widest uppercase transition"
+                              >
+                                Save Draft to pool
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 2. MANUAL WORKFLOW BLOCK */}
+                      <div className="rounded-xl border border-white/5 bg-navy-light/5 p-6 space-y-4">
+                        <h2 className="font-display text-sm font-extrabold text-white uppercase tracking-wider">Standard Article Intake (Manual Dispatch)</h2>
+                        
+                        <div className="space-y-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-[9.5px] font-bold font-mono text-navy-slate uppercase mb-1">Article Title</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. Florida Crypto Recovery Laws Update"
+                                value={manualTitle}
+                                onChange={(e) => setManualTitle(e.target.value)}
+                                className="w-full bg-navy-dark border border-white/10 rounded p-2 text-xs text-white outline-none focus:border-gold"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[9.5px] font-bold font-mono text-navy-slate uppercase mb-1">Dossier Category</label>
+                              <select
+                                value={manualCategory}
+                                onChange={(e) => setManualCategory(e.target.value)}
+                                className="w-full bg-navy-dark border border-white/10 rounded p-2 text-xs text-white outline-none focus:border-gold"
+                              >
+                                <option value="Cryptocurrency Recovery">Cryptocurrency Recovery</option>
+                                <option value="Blockchain Investigations">Blockchain Investigations</option>
+                                <option value="Cybersecurity">Cybersecurity</option>
+                                <option value="Scam Prevention">Scam Prevention</option>
+                                <option value="Digital Forensics">Digital Forensics</option>
+                                <option value="Asset Tracing">Asset Tracing</option>
+                                <option value="Regulatory Compliance">Regulatory Compliance</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-[9.5px] font-bold font-mono text-navy-slate uppercase mb-1">Meta Summary (Brief excerpt)</label>
+                            <input
+                              type="text"
+                              placeholder="Highly optimized meta outline snippet"
+                              value={manualSummary}
+                              onChange={(e) => setManualSummary(e.target.value)}
+                              className="w-full bg-navy-dark border border-white/10 rounded p-2 text-xs text-white outline-none focus:border-gold"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[9.5px] font-bold font-mono text-navy-slate uppercase mb-1 font-bold">Comprehensive Forensic Content (Deep-Dive Journal)</label>
+                            <textarea
+                              rows={8}
+                              placeholder="Introduce thorough, technical blockchain investigation processes. Separated by dual newlines..."
+                              value={manualContent}
+                              onChange={(e) => setManualContent(e.target.value)}
+                              className="w-full bg-navy-dark border border-white/10 rounded p-2.5 text-xs text-white outline-none focus:border-gold font-sans leading-relaxed"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[9.5px] font-bold font-mono text-navy-slate uppercase mb-1">Dossier Keywords (Separated by commas)</label>
+                            <input
+                              type="text"
+                              placeholder="recover stolen cryptocurrency USA, blockchain tracing services Miami"
+                              value={manualTags}
+                              onChange={(e) => setManualTags(e.target.value)}
+                              className="w-full bg-navy-dark border border-white/10 rounded p-2 text-xs text-white outline-none focus:border-gold"
+                            />
                           </div>
 
                           <div className="flex flex-col sm:flex-row gap-3 pt-2">
                             <button
-                              onClick={() => handleSaveAiBlog(true)}
-                              className="flex-1 rounded-sm bg-emerald-600 hover:bg-emerald-500 py-2.5 text-[10px] font-bold tracking-widest text-white uppercase transition"
+                              onClick={() => handlePublishManual(true)}
+                              disabled={isPublishingManual}
+                              className="flex-1 rounded-sm bg-gold py-2.5 text-[10px] font-bold tracking-widest text-[#050b14] hover:bg-gold-hover transition uppercase"
                             >
-                              Approve & Publish Live Forensic Report
+                              Publish Instantly to Live Feed
                             </button>
                             <button
-                              onClick={() => handleSaveAiBlog(false)}
-                              className="flex-1 rounded border border-gold/40 text-gold hover:bg-gold/5 py-2.5 text-[10px] font-bold tracking-widest uppercase transition"
+                              onClick={() => handlePublishManual(false)}
+                              disabled={isPublishingManual}
+                              className="flex-1 rounded-sm border border-white/10 hover:border-gold/30 text-white hover:bg-white/5 py-2.5 text-[10px] font-bold tracking-widest transition uppercase"
                             >
-                              Save Draft to pool
+                              Save as Awaiting Approval Draft
                             </button>
                           </div>
                         </div>
-                      )}
-                    </div>
-
-                {/* 2. MANUAL WORKFLOW BLOCK */}
-                <div className="rounded-xl border border-white/5 bg-navy-light/5 p-6 space-y-4">
-                  <h2 className="font-display text-sm font-extrabold text-white uppercase tracking-wider">Standard Article Intake (Manual Dispatch)</h2>
-                  
-                  <div className="space-y-3">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-[9.5px] font-bold font-mono text-navy-slate uppercase mb-1">Article Title</label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Florida Crypto Recovery Laws Update"
-                          value={manualTitle}
-                          onChange={(e) => setManualTitle(e.target.value)}
-                          className="w-full bg-navy-dark border border-white/10 rounded p-2 text-xs text-white outline-none focus:border-gold"
-                        />
                       </div>
-                      <div>
-                        <label className="block text-[9.5px] font-bold font-mono text-navy-slate uppercase mb-1">Dossier Category</label>
-                        <select
-                          value={manualCategory}
-                          onChange={(e) => setManualCategory(e.target.value)}
-                          className="w-full bg-navy-dark border border-white/10 rounded p-2 text-xs text-white outline-none focus:border-gold"
-                        >
-                          <option value="Cryptocurrency Recovery">Cryptocurrency Recovery</option>
-                          <option value="Blockchain Investigations">Blockchain Investigations</option>
-                          <option value="Cybersecurity">Cybersecurity</option>
-                          <option value="Scam Prevention">Scam Prevention</option>
-                          <option value="Digital Forensics">Digital Forensics</option>
-                          <option value="Asset Tracing">Asset Tracing</option>
-                          <option value="Regulatory Compliance">Regulatory Compliance</option>
-                        </select>
+
+                    </div>
+
+                    {/* Operations Control Panel / Database List */}
+                    <div className="lg:col-span-1 space-y-6">
+                      <div className="rounded-xl border border-white/10 bg-navy-light/10 p-5 space-y-4">
+                        <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
+                          <h2 className="font-display text-xs font-extrabold text-white uppercase tracking-wider">Editorial Pool</h2>
+                          <span className="font-mono text-[9px] rounded bg-white/5 px-2 py-0.5 text-navy-slate">({adminBlogsList.length} total)</span>
+                        </div>
+
+                        {adminBlogsList.length === 0 ? (
+                          <p className="text-xs text-navy-slate text-center py-4">Database empty. Click generating buttons to seed dossier assets.</p>
+                        ) : (
+                          <div className="space-y-3 max-h-[640px] overflow-y-auto pr-1">
+                            {adminBlogsList.map((blog) => (
+                              <div key={blog.id} className="rounded border border-white/5 p-3.5 space-y-2 bg-navy-dark">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-mono text-[8vw] sm:text-[8px] text-navy-slate font-bold uppercase">{blog.category}</span>
+                                  <span className={`px-2 py-0.5 rounded text-[8px] font-mono font-bold uppercase block ${
+                                    blog.status === 'published' 
+                                      ? 'bg-emerald-500/10 text-emerald-500' 
+                                      : 'bg-amber-500/10 text-amber-500 animate-pulse'
+                                  }`}>
+                                    {blog.status === 'published' ? 'Active Published' : 'In Review'}
+                                  </span>
+                                </div>
+
+                                <h3 className="font-display text-xs font-bold text-white uppercase text-clamp-1">{blog.title}</h3>
+                                
+                                <div className="text-[10px] font-mono text-navy-slate flex items-center justify-between">
+                                  <span>{blog.date}</span>
+                                </div>
+
+                                <div className="flex items-center space-x-2 border-t border-white/5 pt-2">
+                                  {blog.status !== 'published' && (
+                                    <button
+                                      onClick={() => handleApproveBlog(blog.id)}
+                                      className="flex-1 flex items-center justify-center space-x-1 rounded bg-emerald-600/25 text-emerald-500 hover:bg-emerald-600/40 p-1.5 text-[9px] font-bold uppercase tracking-wider transition"
+                                      title="Approve & Publish Immediately"
+                                    >
+                                      <Check className="h-3 w-3" />
+                                      <span>Approve</span>
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handleDeleteBlog(blog.id)}
+                                    className="rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 p-1.5 text-[9px] font-bold transition flex items-center justify-center"
+                                    title="Delete Record"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Secure Compliance Note */}
+                      <div className="rounded-xl border border-gold/15 bg-gold/5 p-4 space-y-2">
+                        <div className="flex items-center space-x-2 text-gold">
+                          <AlertCircle className="h-4 w-4" />
+                          <span className="font-display text-[9px] font-bold tracking-widest uppercase">Subpoena Readiness Warning</span>
+                        </div>
+                        <p className="text-[10px] text-navy-slate leading-relaxed">
+                          All articles posted to the public ledger must abide by NIST frameworks. Unauthorized disclosure of suspect UTXO tracing sets prior to formal litigation service may prejudice ongoing recovery routines under Federal regulations.
+                        </p>
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block text-[9.5px] font-bold font-mono text-navy-slate uppercase mb-1">Meta Summary (Brief excerpt)</label>
-                      <input
-                        type="text"
-                        placeholder="Highly optimized meta outline snippet"
-                        value={manualSummary}
-                        onChange={(e) => setManualSummary(e.target.value)}
-                        className="w-full bg-navy-dark border border-white/10 rounded p-2 text-xs text-white outline-none focus:border-gold"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[9.5px] font-bold font-mono text-navy-slate uppercase mb-1 font-bold">Comprehensive Forensic Content (Deep-Dive Journal)</label>
-                      <textarea
-                        rows={8}
-                        placeholder="Introduce thorough, technical blockchain investigation processes. Separated by dual newlines..."
-                        value={manualContent}
-                        onChange={(e) => setManualContent(e.target.value)}
-                        className="w-full bg-navy-dark border border-white/10 rounded p-2.5 text-xs text-white outline-none focus:border-gold font-sans leading-relaxed"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[9.5px] font-bold font-mono text-navy-slate uppercase mb-1">Dossier Keywords (Separated by commas)</label>
-                      <input
-                        type="text"
-                        placeholder="recover stolen cryptocurrency USA, blockchain tracing services Miami"
-                        value={manualTags}
-                        onChange={(e) => setManualTags(e.target.value)}
-                        className="w-full bg-navy-dark border border-white/10 rounded p-2 text-xs text-white outline-none focus:border-gold"
-                      />
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                      <button
-                        onClick={() => handlePublishManual(true)}
-                        disabled={isPublishingManual}
-                        className="flex-1 rounded-sm bg-gold py-2.5 text-[10px] font-bold tracking-widest text-[#050b14] hover:bg-gold-hover transition uppercase"
-                      >
-                        Publish Instantly to Live Feed
-                      </button>
-                      <button
-                        onClick={() => handlePublishManual(false)}
-                        disabled={isPublishingManual}
-                        className="flex-1 rounded-sm border border-white/10 hover:border-gold/30 text-white hover:bg-white/5 py-2.5 text-[10px] font-bold tracking-widest transition uppercase"
-                      >
-                        Save as Awaiting Approval Draft
-                      </button>
-                    </div>
                   </div>
-                </div>
+                ) : (
+                  // FAQ MANAGEMENT ENGINE VIEW
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    {/* Creator Forms */}
+                    <div className="lg:col-span-2 space-y-8">
+                      {/* 1. AI FAQ GENERATOR MODULE */}
+                      <div className="rounded-xl border border-gold/25 bg-navy-light/15 p-6 space-y-6 relative overflow-hidden backdrop-blur-sm">
+                        <div className="absolute top-0 right-0 h-24 w-24 bg-gold/5 rounded-full blur-2xl pointer-events-none"></div>
+                        
+                        <div className="flex items-center space-x-2">
+                          <Sparkles className="h-5 w-5 text-gold" />
+                          <h2 className="font-display text-base font-extrabold text-white uppercase tracking-wider">AI FAQ Generator Assist</h2>
+                        </div>
+                        
+                        <p className="text-xs text-navy-slate leading-relaxed">
+                          Enter a key recovery keyword, service offering, or common client question topic. Gemini AI will build a premium, highly SEO-optimized question and thorough answer to maximize search recommendation and audience indexing.
+                        </p>
 
-              </div>
-
-              {/* Operations Control Panel / Database List */}
-              <div className="lg:col-span-1 space-y-6">
-                <div className="rounded-xl border border-white/10 bg-navy-light/10 p-5 space-y-4">
-                  <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
-                    <h2 className="font-display text-xs font-extrabold text-white uppercase tracking-wider">Editorial Pool</h2>
-                    <span className="font-mono text-[9px] rounded bg-white/5 px-2 py-0.5 text-navy-slate">({adminBlogsList.length} total)</span>
-                  </div>
-
-                  {adminBlogsList.length === 0 ? (
-                    <p className="text-xs text-navy-slate text-center py-4">Database empty. Click generating buttons to seed dossier assets.</p>
-                  ) : (
-                    <div className="space-y-3 max-h-[640px] overflow-y-auto pr-1">
-                      {adminBlogsList.map((blog) => (
-                        <div key={blog.id} className="rounded border border-white/5 p-3.5 space-y-2 bg-navy-dark">
-                          <div className="flex items-center justify-between">
-                            <span className="font-mono text-[8vw] sm:text-[8px] text-navy-slate font-bold uppercase">{blog.category}</span>
-                            <span className={`px-2 py-0.5 rounded text-[8px] font-mono font-bold uppercase block ${
-                              blog.status === 'published' 
-                                ? 'bg-emerald-500/10 text-emerald-500' 
-                                : 'bg-amber-500/10 text-amber-500 animate-pulse'
-                            }`}>
-                              {blog.status === 'published' ? 'Active Published' : 'In Review'}
-                            </span>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-xs font-bold font-mono text-gold uppercase mb-1">Target Search Keyword or Topic</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. USDT Pig butchering scam recovery path, wallet access restoration, or blockchain analysis"
+                              value={aiFaqTopicPrompt}
+                              onChange={(e) => setAiFaqTopicPrompt(e.target.value)}
+                              className="w-full bg-navy-dark border border-white/10 rounded-sm p-3 text-xs text-white outline-none focus:border-gold transition"
+                            />
                           </div>
 
-                          <h3 className="font-display text-xs font-bold text-white uppercase text-clamp-1">{blog.title}</h3>
-                          
-                          <div className="text-[10px] font-mono text-navy-slate flex items-center justify-between">
-                            <span>{blog.date}</span>
-                          </div>
-
-                          <div className="flex items-center space-x-2 border-t border-white/5 pt-2">
-                            {blog.status !== 'published' && (
-                              <button
-                                onClick={() => handleApproveBlog(blog.id)}
-                                className="flex-1 flex items-center justify-center space-x-1 rounded bg-emerald-600/25 text-emerald-500 hover:bg-emerald-600/40 p-1.5 text-[9px] font-bold uppercase tracking-wider transition"
-                                title="Approve & Publish Immediately"
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-xs font-bold font-mono text-gold uppercase mb-1">FAQ Category Focus</label>
+                              <select
+                                value={aiFaqSelectedCategory}
+                                onChange={(e) => setAiFaqSelectedCategory(e.target.value)}
+                                className="w-full bg-navy-dark border border-white/10 rounded-sm p-2.5 text-xs text-white outline-none focus:border-gold"
                               >
-                                <Check className="h-3 w-3" />
-                                <span>Approve</span>
+                                <option value="Crypto Recovery">Crypto Recovery</option>
+                                <option value="Blockchain Tracing">Blockchain Tracing</option>
+                                <option value="Scam Prevention">Scam Prevention</option>
+                                <option value="Security">Security</option>
+                                <option value="Legal">Legal</option>
+                                <option value="Timeline & Scheduling">Timeline & Scheduling</option>
+                              </select>
+                            </div>
+
+                            <div className="flex items-end">
+                              <button
+                                onClick={handleGenerateAiFaq}
+                                disabled={isGeneratingAiFaq}
+                                className="w-full h-[38px] rounded-sm bg-gradient-to-r from-gold to-gold-hover hover:opacity-90 font-display text-[10.5px] font-bold tracking-widest text-[#050b14] uppercase transition disabled:opacity-50"
+                              >
+                                {isGeneratingAiFaq ? "Drafting with AI..." : "Generate SEO FAQ with AI ✨"}
                               </button>
-                            )}
-                            <button
-                              onClick={() => handleDeleteBlog(blog.id)}
-                              className="rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 p-1.5 text-[9px] font-bold transition flex items-center justify-center"
-                              title="Delete Record"
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
+                            </div>
                           </div>
                         </div>
-                      ))}
+
+                        {/* AI PREVIEW SCREEN */}
+                        {aiTempFaq && (
+                          <div className="border border-gold/30 rounded-lg p-5 bg-gold/5 space-y-4 animate-in fade-in duration-300">
+                            <div className="flex items-center justify-between border-b border-gold/10 pb-2">
+                              <span className="font-mono text-[9px] text-gold uppercase font-bold tracking-widest">PROPOSED DRAFT</span>
+                              <span className="font-mono text-[9px] bg-gold/10 text-gold px-2 py-0.5 rounded uppercase font-bold">{aiTempFaq.category}</span>
+                            </div>
+
+                            <div className="space-y-3">
+                              <div>
+                                <h4 className="text-[10px] font-bold font-mono text-gold uppercase tracking-wider">Question:</h4>
+                                <p className="text-xs text-white font-display font-bold leading-relaxed">{aiTempFaq.question}</p>
+                              </div>
+                              <div>
+                                <h4 className="text-[10px] font-bold font-mono text-gold uppercase tracking-wider">SEO Optimized Answer:</h4>
+                                <p className="text-xs text-navy-slate font-sans leading-relaxed">{aiTempFaq.answer}</p>
+                              </div>
+                            </div>
+
+                            <div className="flex space-x-3 pt-2">
+                              <button
+                                onClick={handleSaveAiFaq}
+                                className="flex-1 rounded-sm bg-gold hover:bg-gold-hover py-2 text-[10px] font-bold tracking-wider text-[#050b14] uppercase transition"
+                              >
+                                Publish to Live Directory
+                              </button>
+                              <button
+                                onClick={() => setAiTempFaq(null)}
+                                className="px-4 rounded-sm border border-white/10 hover:bg-white/5 py-2 text-[10px] font-bold text-white uppercase transition"
+                              >
+                                Discard
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* 2. MANUAL FAQ CREATOR */}
+                      <div className="rounded-xl border border-white/10 bg-navy-light/5 p-6 space-y-5 relative">
+                        <div className="flex items-center space-x-2">
+                          <Plus className="h-5 w-5 text-gold" />
+                          <h2 className="font-display text-base font-extrabold text-white uppercase tracking-wider">Manual FAQ Dispatch</h2>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                          <div className="sm:col-span-2">
+                            <label className="block text-[9.5px] font-bold font-mono text-navy-slate uppercase mb-1">Category</label>
+                            <select
+                              value={faqInputCategory}
+                              onChange={(e) => setFaqInputCategory(e.target.value)}
+                              className="w-full bg-navy-dark border border-white/10 rounded p-2 text-xs text-white outline-none focus:border-gold"
+                            >
+                              <option value="Crypto Recovery">Crypto Recovery</option>
+                              <option value="Blockchain Tracing">Blockchain Tracing</option>
+                              <option value="Scam Prevention">Scam Prevention</option>
+                              <option value="Security">Security</option>
+                              <option value="Legal">Legal</option>
+                              <option value="Timeline & Scheduling">Timeline & Scheduling</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="block text-[9.5px] font-bold font-mono text-navy-slate uppercase mb-1">Question</label>
+                          <textarea
+                            rows={2}
+                            placeholder="e.g. Can I recover Bitcoin run through centralized mixers?"
+                            value={faqInputQuestion}
+                            onChange={(e) => setFaqInputQuestion(e.target.value)}
+                            className="w-full bg-navy-dark border border-white/10 rounded p-2 text-xs text-white outline-none focus:border-gold"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[9.5px] font-bold font-mono text-navy-slate uppercase mb-1">Thorough Answer</label>
+                          <textarea
+                            rows={4}
+                            placeholder="Write an informative, authoritative answer incorporating key search phrases."
+                            value={faqInputAnswer}
+                            onChange={(e) => setFaqInputAnswer(e.target.value)}
+                            className="w-full bg-navy-dark border border-white/10 rounded p-2 text-xs text-white outline-none focus:border-gold"
+                          />
+                        </div>
+
+                        <button
+                          onClick={handlePublishManualFaq}
+                          disabled={isSubmittingManualFaq}
+                          className="w-full rounded-sm bg-gold py-2.5 text-[10px] font-bold tracking-widest text-[#050b14] hover:bg-gold-hover transition uppercase"
+                        >
+                          {isSubmittingManualFaq ? "Publishing..." : "Add FAQ to Public Directory"}
+                        </button>
+                      </div>
                     </div>
-                  )}
-                </div>
 
-                {/* Secure Compliance Note */}
-                <div className="rounded-xl border border-gold/15 bg-gold/5 p-4 space-y-2">
-                  <div className="flex items-center space-x-2 text-gold">
-                    <AlertCircle className="h-4 w-4" />
-                    <span className="font-display text-[9px] font-bold tracking-widest uppercase">Subpoena Readiness Warning</span>
+                    {/* Right Side: FAQ Database Pool */}
+                    <div className="lg:col-span-1 space-y-6">
+                      <div className="rounded-xl border border-white/10 bg-navy-light/10 p-5 space-y-4">
+                        <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
+                          <h2 className="font-display text-xs font-extrabold text-white uppercase tracking-wider">FAQ Pool</h2>
+                          <span className="font-mono text-[9px] rounded bg-white/5 px-2 py-0.5 text-navy-slate">({faqsList.length} total)</span>
+                        </div>
+
+                        {faqsList.length === 0 ? (
+                          <p className="text-xs text-navy-slate text-center py-4">No FAQs currently populated.</p>
+                        ) : (
+                          <div className="space-y-3 max-h-[640px] overflow-y-auto pr-1">
+                            {faqsList.map((faq) => (
+                              <div key={faq.id} className="rounded border border-white/5 p-3.5 space-y-2 bg-navy-dark">
+                                <div className="flex items-center justify-between">
+                                  <span className="font-mono text-[8px] border border-gold/20 bg-gold/5 text-gold px-1.5 py-0.5 rounded font-bold uppercase">{faq.category}</span>
+                                  <button
+                                    onClick={() => handleDeleteFaq(faq.id)}
+                                    className="rounded bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 p-1.5 text-[9px] font-bold transition flex items-center justify-center"
+                                    title="Delete FAQ"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                </div>
+                                <h3 className="font-display text-xs font-bold text-white uppercase leading-snug">{faq.question}</h3>
+                                <p className="text-[10px] text-navy-slate line-clamp-3 leading-relaxed font-sans">{faq.answer}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* FAQ Optimization Guide */}
+                      <div className="rounded-xl border border-gold/15 bg-gold/5 p-4 space-y-2">
+                        <div className="flex items-center space-x-2 text-gold">
+                          <Sparkles className="h-4 w-4" />
+                          <span className="font-display text-[9px] font-bold tracking-widest uppercase">FAQ Ranking Guidelines</span>
+                        </div>
+                        <p className="text-[10px] text-navy-slate leading-relaxed">
+                          To maximize visibility on Gemini AI recommendations and Google Search Console:
+                        </p>
+                        <ul className="text-[9.5px] text-navy-slate list-disc pl-4 space-y-1 font-mono">
+                          <li>Integrate "crypto asset recovery" naturally.</li>
+                          <li>Address common scam models such as "Pig Butchering".</li>
+                          <li>Ensure questions align precisely with real client search queries.</li>
+                        </ul>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-[10px] text-navy-slate leading-relaxed">
-                    All articles posted to the public ledger must abide by NIST frameworks. Unauthorized disclosure of suspect UTXO tracing sets prior to formal litigation service may prejudice ongoing recovery routines under Federal regulations.
-                  </p>
-                </div>
-              </div>
-
-            </div>
+                )}
 
               </>
             )}
@@ -2675,7 +3070,7 @@ export default function App() {
             <div className="space-y-4">
               {(() => {
                 const s = faqSearch.trim().toLowerCase();
-                const filtered = FAQS.filter(faq => {
+                const filtered = faqsList.filter(faq => {
                   // Category match check
                   let categoryMatches = true;
                   if (faqCategory !== 'All') {
