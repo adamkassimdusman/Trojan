@@ -32,6 +32,7 @@ import {
 import TrojanLogo from './components/TrojanLogo';
 import Navigation from './components/Navigation';
 import TestimonialCarousel from './components/TestimonialCarousel';
+import TrustBox from './components/TrustBox';
 import { SERVICES } from './data/servicesData';
 import { CASE_STUDIES, RESOURCES, FAQS, TESTIMONIALS, BLOG_POSTS } from './data/resourcesData';
 import { NewsArticle, BlogPost } from './types';
@@ -1261,6 +1262,9 @@ export default function App() {
             {/* CURATED CLIENT TESTIMONIALS SECTION */}
             <section className="mx-auto max-w-7xl px-6 py-12 border-t border-gold/15 space-y-8">
               <TestimonialCarousel testimonials={TESTIMONIALS} />
+              <div className="pt-4">
+                <TrustBox />
+              </div>
             </section>
 
           </div>
@@ -3107,6 +3111,9 @@ export default function App() {
             <p className="text-[11px] leading-relaxed">
               Tracing digital assets and delivering financial justice through elite cryptographic analysis and law enforcement coordinate networks globally.
             </p>
+            <div className="pt-2">
+              <TrustBox />
+            </div>
           </div>
 
           {/* Quick Sitemap Links */}

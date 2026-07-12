@@ -1,0 +1,61 @@
+<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stopColor="#F3CD4F" />
+      <stop offset="50%" stopColor="#D4AF37" />
+      <stop offset="100%" stopColor="#9E7D1A" />
+    </linearGradient>
+  </defs>
+  <!-- Plume / Crest of Helmet -->
+  <path 
+    d="M20 55 C20 25, 45 10, 75 15 C60 25, 55 40, 52 50" 
+    stroke="url(#goldGrad)" 
+    strokeWidth="4" 
+    strokeLinecap="round" 
+    fill="none" 
+  />
+  <path 
+    d="M30 45 C30 25, 48 18, 65 20" 
+    stroke="url(#goldGrad)" 
+    strokeWidth="2" 
+    strokeLinecap="round" 
+    fill="none" 
+  />
+  <!-- Helmet Base Dome -->
+  <path 
+    d="M25 55 C25 35, 55 35, 75 55 C75 68, 68 72, 60 72 L60 55 L40 55 L40 72 C32 72, 25 68, 25 55 Z" 
+    fill="url(#goldGrad)" 
+    fillOpacity="0.15" 
+    stroke="url(#goldGrad)" 
+    strokeWidth="3" 
+    strokeLinejoin="round" 
+  />
+  <!-- Nose Guard -->
+  <path 
+    d="M50 50 L50 68 L47 68 L47 50" 
+    fill="url(#goldGrad)" 
+    stroke="url(#goldGrad)" 
+    strokeWidth="1.5" 
+  />
+  <!-- Cheek Guards -->
+  <path 
+    d="M25 55 L22 75 L32 82 L35 70" 
+    fill="url(#goldGrad)" 
+    fillOpacity="0.2" 
+    stroke="url(#goldGrad)" 
+    strokeWidth="2.5" 
+    strokeLinejoin="round" 
+  />
+  <path 
+    d="M75 55 L78 75 L68 82 L65 70" 
+    fill="url(#goldGrad)" 
+    fillOpacity="0.2" 
+    stroke="url(#goldGrad)" 
+    strokeWidth="2.5" 
+    strokeLinejoin="round" 
+  />
+  <!-- Forensic Detail Indicators -->
+  <circle cx="50" cy="42" r="2.5" fill="url(#goldGrad)" />
+  <circle cx="38" cy="50" r="2" fill="url(#goldGrad)" />
+  <circle cx="62" cy="50" r="2" fill="url(#goldGrad)" />
+</svg>
