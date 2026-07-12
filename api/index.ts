@@ -211,6 +211,7 @@ interface ServerFaqItem {
   question: string;
   answer: string;
   category: string;
+  targetKeyword?: string;
 }
 
 const db_faqs: ServerFaqItem[] = [
@@ -641,7 +642,7 @@ app.get("/api/faqs", (req, res) => {
 });
 
 app.post("/api/faqs", (req, res) => {
-  const { question, answer, category } = req.body;
+  const { question, answer, category, targetKeyword } = req.body;
   
   if (!question || !answer || !category) {
     return res.status(400).json({ error: "Missing required FAQ elements." });
@@ -651,7 +652,8 @@ app.post("/api/faqs", (req, res) => {
     id: "faq_" + Date.now().toString(36),
     question,
     answer,
-    category
+    category,
+    targetKeyword
   };
 
   db_faqs.unshift(newFaq);
@@ -685,7 +687,8 @@ app.post("/api/faqs/generate", async (req, res) => {
     const fallbackFaq = {
       question: generatedQuestion,
       answer: `Addressing concerns related to "${userPrompt}" requires systematic forensic tracking. At Trojan Recovery, we utilize advanced heuristic clustering algorithms to analyze on-chain transaction flows. By isolating withdrawal footprints, identifying multi-wallet links, and tracking compromised assets down to centralized exchange off-ramps, we compile comprehensive evidence dossiers. These certified visual tracing charts empower victims and legal representatives to file rapid freeze petitions and coordinate subpoenas with law enforcement worldwide to safeguard lost capital.`,
-      category: targetCategory
+      category: targetCategory,
+      targetKeyword: userPrompt.substring(0, 40)
     };
     return res.json({ success: true, faq: fallbackFaq, isFallback: true });
   }
@@ -704,7 +707,8 @@ app.post("/api/faqs/generate", async (req, res) => {
     {
       "question": "An engaging, click-worthy search-oriented question",
       "answer": "A detailed, professional, and trustworthy answer demonstrating deep technical expertise",
-      "category": "${targetCategory}"
+      "category": "${targetCategory}",
+      "targetKeyword": "A high-volume US search keyword or topic targeted by this FAQ, e.g. 'recover stolen cryptocurrency USA' or 'blockchain tracing Miami'"
     }
     Generate only the raw JSON, no markdown formatting.`;
 
@@ -724,7 +728,8 @@ app.post("/api/faqs/generate", async (req, res) => {
     const fallbackFaq = {
       question: generatedQuestion,
       answer: `Addressing concerns related to "${userPrompt}" requires systematic forensic tracking. At Trojan Recovery, we utilize advanced heuristic clustering algorithms to analyze on-chain transaction flows. By isolating withdrawal footprints, identifying multi-wallet links, and tracking compromised assets down to centralized exchange off-ramps, we compile comprehensive evidence dossiers. These certified visual tracing charts empower victims and legal representatives to file rapid freeze petitions and coordinate subpoenas with law enforcement worldwide to safeguard lost capital.`,
-      category: targetCategory
+      category: targetCategory,
+      targetKeyword: userPrompt.substring(0, 40)
     };
     return res.json({ success: true, faq: fallbackFaq, isFallback: true });
   }
@@ -800,10 +805,12 @@ Second, we prepare the certified technical briefs conforming to strict NIST fore
   }
 
   try {
-    const systemPrompt = `You are a professional blockchain forensic copywriter for Trojan Cyber Intelligence.
-    Build an extremely in-depth, thorough, professional-grade technical cybersecurity article discussing the requested concept: "${userPrompt}".
-    The article MUST have maximum technical depth to address the user's explicit instructions: make it highly informative, multi-paragraph, and professional.
-    Include step-by-step procedures, technical insights, and bullet points where helpful.
+    const systemPrompt = `You are an elite blockchain forensics and SEO strategist for Trojan Cyber Intelligence (trojanrecovery.com).
+    Generate an extremely engaging, SEO-optimized, highly informative, and authoritative blog article about the following concept: "${userPrompt}".
+    The article must be designed to rank exceptionally high on search engines (Google, Bing) and AI search engines (like Gemini, Perplexity) as a premier technical reference.
+    
+    Make the title interesting, highly click-worthy, and perfectly aligned with search intent.
+    The content must be thorough (3-4 paragraphs separated by double newlines \\n\\n), highly authoritative, and professionally convincing.
     
     Incorporate high-value US SEO phrases naturally within the text:
     - "recover stolen cryptocurrency USA"

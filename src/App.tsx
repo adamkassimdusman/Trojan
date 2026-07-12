@@ -36,7 +36,7 @@ import TrustBox from './components/TrustBox';
 import { SERVICES } from './data/servicesData';
 import { CASE_STUDIES, RESOURCES, FAQS, TESTIMONIALS, BLOG_POSTS } from './data/resourcesData';
 import { NewsArticle, BlogPost, FaqItem } from './types';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 
 // Simple Markdown parser for React to fix star and hash markdown formatting
 const parseInlineMarkdown = (text: string): React.ReactNode[] => {
@@ -338,6 +338,7 @@ export default function App() {
   const [faqInputQuestion, setFaqInputQuestion] = useState('');
   const [faqInputAnswer, setFaqInputAnswer] = useState('');
   const [faqInputCategory, setFaqInputCategory] = useState('Crypto Recovery');
+  const [faqInputTargetKeyword, setFaqInputTargetKeyword] = useState('');
   const [isSubmittingManualFaq, setIsSubmittingManualFaq] = useState(false);
 
   const [aiFaqTopicPrompt, setAiFaqTopicPrompt] = useState('');
@@ -345,6 +346,7 @@ export default function App() {
   const [isGeneratingAiFaq, setIsGeneratingAiFaq] = useState(false);
   const [aiTempFaq, setAiTempFaq] = useState<any | null>(null);
   const [publisherSubTab, setPublisherSubTab] = useState<'dossiers' | 'faqs'>('dossiers');
+  const [servicesCategory, setServicesCategory] = useState('All');
 
   // Publisher Admin login states
   const [adminUsername, setAdminUsername] = useState('');
@@ -399,12 +401,59 @@ export default function App() {
     setMetaTag('twitter:image', img, false);
   }, [selectedNewsId, selectedBlogId, newsList, blogsList]);
 
-  // Dynamic JSON-LD Breadcrumb structured data for every page view
+  // Google Analytics 4 (GA4) Integration & Peak Times Tracker
+  useEffect(() => {
+    const measurementId = (import.meta as any).env?.VITE_GA_MEASUREMENT_ID || 'G-47ZBP6CBY4';
+    if (!measurementId) return;
+
+    // Initialize global dataLayer and gtag function if not already present
+    (window as any).dataLayer = (window as any).dataLayer || [];
+    if (!(window as any).gtag) {
+      const gtag = function(...args: any[]) {
+        (window as any).dataLayer.push(args);
+      };
+      (window as any).gtag = gtag;
+    }
+
+    console.log(`Trojan Secure Analytics (GA4) synchronized with Measurement ID: ${measurementId}`);
+  }, []);
+
+  // Track event helper
+  const trackEvent = (eventName: string, params: Record<string, any> = {}) => {
+    try {
+      if ((window as any).gtag) {
+        const now = new Date();
+        (window as any).gtag('event', eventName, {
+          ...params,
+          hour_of_day: now.getHours(),
+          day_of_week: now.getDay(),
+          local_time: now.toLocaleTimeString(),
+          timestamp: now.toISOString()
+        });
+      }
+    } catch (e) {
+      console.warn("GA tracking error:", e);
+    }
+  };
+
+  // Track page views and peak investigation navigation times
+  useEffect(() => {
+    trackEvent('page_view_navigation', {
+      page_title: `Trojan Portal - ${currentTab.toUpperCase()}`,
+      page_path: `/${currentTab}`,
+      selected_news_id: selectedNewsId,
+      selected_blog_id: selectedBlogId,
+      selected_service_id: selectedServiceId
+    });
+  }, [currentTab, selectedNewsId, selectedBlogId, selectedServiceId]);
+
+  // Dynamic JSON-LD Breadcrumb & BlogPosting structured data for every page view, as well as dynamic canonical URL and meta keywords
   useEffect(() => {
     const existingScript = document.getElementById('breadcrumb-jsonld');
-    if (existingScript) {
-      existingScript.remove();
-    }
+    if (existingScript) existingScript.remove();
+
+    const existingBlogScript = document.getElementById('blogposting-jsonld');
+    if (existingBlogScript) existingBlogScript.remove();
 
     const host = window.location.origin;
     const items = [
@@ -471,11 +520,87 @@ export default function App() {
     script.innerHTML = JSON.stringify(jsonLd, null, 2);
     document.head.appendChild(script);
 
+    // Inject BlogPosting schema when viewing a single blog article for enhanced SEO crawling
+    if (currentTab === 'blog' && selectedBlogId) {
+      const blogPost = blogsList.find(b => b.id === selectedBlogId) || getStaticBlogsFallback().find(b => b.id === selectedBlogId);
+      if (blogPost) {
+        const blogSchema = {
+          "@context": "https://schema.org",
+          "@type": "BlogPosting",
+          "headline": blogPost.title,
+          "description": blogPost.summary,
+          "image": blogPost.imageUrl || "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&q=80&w=600",
+          "datePublished": blogPost.date ? new Date(blogPost.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          "author": {
+            "@type": "Person",
+            "name": blogPost.author?.name || "Dr. Evelyn Croft",
+            "jobTitle": blogPost.author?.role || "Director of Cyber Forensics"
+          },
+          "publisher": {
+            "@type": "Organization",
+            "name": "Trojan Cyber Intelligence",
+            "logo": {
+              "@type": "ImageObject",
+              "url": `${host}/logo.png`
+            }
+          },
+          "mainEntityOfPage": `${host}/?tab=blog&id=${selectedBlogId}`
+        };
+
+        const blogScript = document.createElement('script');
+        blogScript.id = 'blogposting-jsonld';
+        blogScript.type = 'application/ld+json';
+        blogScript.innerHTML = JSON.stringify(blogSchema, null, 2);
+        document.head.appendChild(blogScript);
+      }
+    }
+
+    // Dynamic Meta Keywords Tag
+    let existingMetaKeywords = document.querySelector('meta[name="keywords"]');
+    if (!existingMetaKeywords) {
+      existingMetaKeywords = document.createElement('meta');
+      existingMetaKeywords.setAttribute('name', 'keywords');
+      document.head.appendChild(existingMetaKeywords);
+    }
+    let keywords = "recover stolen cryptocurrency USA, blockchain tracing services Miami Florida, crypto asset recovery forensic firm, pig butchering scam recovery experts, exchange asset freeze subpoenas, cyber forensics miami, trojan cyber intelligence";
+    if (currentTab === 'services' && selectedServiceId) {
+      const srv = SERVICES.find(s => s.id === selectedServiceId);
+      if (srv) {
+        keywords = `${srv.title.toLowerCase()}, recover assets, tracing, forensics, ${keywords}`;
+      }
+    } else if (currentTab === 'blog' && selectedBlogId) {
+      const blogPost = blogsList.find(b => b.id === selectedBlogId) || getStaticBlogsFallback().find(b => b.id === selectedBlogId);
+      if (blogPost) {
+        keywords = `${blogPost.title.toLowerCase()}, ${(blogPost.tags || []).join(", ")}, ${keywords}`;
+      }
+    }
+    existingMetaKeywords.setAttribute('content', keywords);
+
+    // Dynamic Canonical Link Tag
+    let existingCanonical = document.querySelector('link[rel="canonical"]');
+    if (!existingCanonical) {
+      existingCanonical = document.createElement('link');
+      existingCanonical.setAttribute('rel', 'canonical');
+      document.head.appendChild(existingCanonical);
+    }
+    let canonicalUrl = "https://trojanrecovery.com/";
+    if (currentTab && currentTab !== 'home') {
+      canonicalUrl += `?tab=${currentTab}`;
+      if (currentTab === 'services' && selectedServiceId) {
+        canonicalUrl += `&id=${selectedServiceId}`;
+      } else if (currentTab === 'blog' && selectedBlogId) {
+        canonicalUrl += `&id=${selectedBlogId}`;
+      } else if (currentTab === 'news' && selectedNewsId) {
+        canonicalUrl += `&id=${selectedNewsId}`;
+      }
+    }
+    existingCanonical.setAttribute('href', canonicalUrl);
+
     return () => {
       const cleanupScript = document.getElementById('breadcrumb-jsonld');
-      if (cleanupScript) {
-        cleanupScript.remove();
-      }
+      if (cleanupScript) cleanupScript.remove();
+      const cleanupBlogScript = document.getElementById('blogposting-jsonld');
+      if (cleanupBlogScript) cleanupBlogScript.remove();
     };
   }, [currentTab, selectedNewsId, selectedBlogId, selectedServiceId, newsList, blogsList]);
 
@@ -545,7 +670,22 @@ export default function App() {
       if (!res.ok) throw new Error("Server error " + res.status);
       const data = await res.json();
       if (data.blogs) {
-        setBlogsList(data.blogs);
+        // Merge server blogs with client local storage so custom approved blogs are not wiped on server restart
+        const localStored = localStorage.getItem('sc_blogs');
+        let merged = [...data.blogs];
+        if (localStored) {
+          try {
+            const localList: BlogPost[] = JSON.parse(localStored);
+            const uniqueLocal = localList.filter(lb => 
+              !merged.some(sb => sb.id === lb.id) && (lb.status === "published" || !lb.status)
+            );
+            merged = [...uniqueLocal, ...merged];
+          } catch (e) {
+            console.warn("Error parsing local blogs inside merge:", e);
+          }
+        }
+        setBlogsList(merged);
+        localStorage.setItem('sc_blogs', JSON.stringify(merged));
       } else {
         throw new Error("No blogs field");
       }
@@ -575,7 +715,19 @@ export default function App() {
       if (!res.ok) throw new Error("Server error " + res.status);
       const data = await res.json();
       if (data.blogs) {
-        setAdminBlogsList(data.blogs);
+        const localStored = localStorage.getItem('sc_blogs');
+        let merged = [...data.blogs];
+        if (localStored) {
+          try {
+            const localList: BlogPost[] = JSON.parse(localStored);
+            const uniqueLocal = localList.filter(lb => !merged.some(sb => sb.id === lb.id));
+            merged = [...uniqueLocal, ...merged];
+          } catch (e) {
+            console.warn("Error parsing local admin blogs merge:", e);
+          }
+        }
+        setAdminBlogsList(merged);
+        localStorage.setItem('sc_blogs', JSON.stringify(merged));
       } else {
         throw new Error("No blogs field");
       }
@@ -603,8 +755,19 @@ export default function App() {
       if (!res.ok) throw new Error("Server error " + res.status);
       const data = await res.json();
       if (data.faqs) {
-        setFaqsList(data.faqs);
-        localStorage.setItem('sc_faqs', JSON.stringify(data.faqs));
+        const localStored = localStorage.getItem('sc_faqs');
+        let merged = [...data.faqs];
+        if (localStored) {
+          try {
+            const localList: FaqItem[] = JSON.parse(localStored);
+            const uniqueLocal = localList.filter(lf => !merged.some(sf => sf.id === lf.id));
+            merged = [...uniqueLocal, ...merged];
+          } catch (e) {
+            console.warn("Error parsing local faqs merge:", e);
+          }
+        }
+        setFaqsList(merged);
+        localStorage.setItem('sc_faqs', JSON.stringify(merged));
       } else {
         throw new Error("No faqs field");
       }
@@ -849,7 +1012,17 @@ export default function App() {
         body: JSON.stringify(payload)
       });
       const data = await res.json();
-      if (data.success) {
+      if (data.success && data.post) {
+        // Backup to local storage immediately
+        try {
+          const stored = localStorage.getItem('sc_blogs') || '[]';
+          const list = JSON.parse(stored);
+          list.unshift(data.post);
+          localStorage.setItem('sc_blogs', JSON.stringify(list));
+        } catch (e) {
+          console.warn("Failed saving blog to localStorage:", e);
+        }
+
         setManualTitle('');
         setManualSummary('');
         setManualContent('');
@@ -915,7 +1088,17 @@ export default function App() {
         })
       });
       const data = await res.json();
-      if (data.success) {
+      if (data.success && data.post) {
+        // Backup to local storage immediately
+        try {
+          const stored = localStorage.getItem('sc_blogs') || '[]';
+          const list = JSON.parse(stored);
+          list.unshift(data.post);
+          localStorage.setItem('sc_blogs', JSON.stringify(list));
+        } catch (e) {
+          console.warn("Failed saving AI blog to localStorage:", e);
+        }
+
         setAiTempPost(null);
         setAiTopicPrompt('');
         alert(publishDirectly ? "AI-Generated article approved and published directly to Forensic Blog!" : "AI-Generated draft saved to Editorial Pool.");
@@ -938,6 +1121,21 @@ export default function App() {
       });
       const data = await res.json();
       if (data.success) {
+        // Update local storage immediately
+        try {
+          const stored = localStorage.getItem('sc_blogs');
+          if (stored) {
+            const list = JSON.parse(stored);
+            const post = list.find((b: any) => b.id === id);
+            if (post) {
+              post.status = "published";
+              localStorage.setItem('sc_blogs', JSON.stringify(list));
+            }
+          }
+        } catch (e) {
+          console.warn("Failed updating approved status in localStorage:", e);
+        }
+
         alert("Article approved and propagated successfully to the Forensic Blog active list!");
         await loadBlogs();
         await loadAdminBlogs();
@@ -959,6 +1157,18 @@ export default function App() {
       });
       const data = await res.json();
       if (data.success) {
+        // Delete from local storage immediately
+        try {
+          const stored = localStorage.getItem('sc_blogs');
+          if (stored) {
+            const list = JSON.parse(stored);
+            const updated = list.filter((b: any) => b.id !== id);
+            localStorage.setItem('sc_blogs', JSON.stringify(updated));
+          }
+        } catch (e) {
+          console.warn("Failed deleting blog from localStorage:", e);
+        }
+
         await loadBlogs();
         await loadAdminBlogs();
       } else {
@@ -1008,11 +1218,22 @@ export default function App() {
         body: JSON.stringify({
           question: aiTempFaq.question,
           answer: aiTempFaq.answer,
-          category: aiTempFaq.category
+          category: aiTempFaq.category,
+          targetKeyword: aiTempFaq.targetKeyword
         })
       });
       const data = await res.json();
-      if (data.success) {
+      if (data.success && data.faq) {
+        // Backup to local storage immediately
+        try {
+          const stored = localStorage.getItem('sc_faqs') || '[]';
+          const list = JSON.parse(stored);
+          list.unshift(data.faq);
+          localStorage.setItem('sc_faqs', JSON.stringify(list));
+        } catch (e) {
+          console.warn("Failed saving AI FAQ to localStorage:", e);
+        }
+
         setAiTempFaq(null);
         setAiFaqTopicPrompt('');
         alert("SEO-friendly FAQ item successfully saved and posted to live directory!");
@@ -1038,13 +1259,25 @@ export default function App() {
         body: JSON.stringify({
           question: faqInputQuestion,
           answer: faqInputAnswer,
-          category: faqInputCategory
+          category: faqInputCategory,
+          targetKeyword: faqInputTargetKeyword
         })
       });
       const data = await res.json();
-      if (data.success) {
+      if (data.success && data.faq) {
+        // Backup to local storage immediately
+        try {
+          const stored = localStorage.getItem('sc_faqs') || '[]';
+          const list = JSON.parse(stored);
+          list.unshift(data.faq);
+          localStorage.setItem('sc_faqs', JSON.stringify(list));
+        } catch (e) {
+          console.warn("Failed saving manual FAQ to localStorage:", e);
+        }
+
         setFaqInputQuestion('');
         setFaqInputAnswer('');
+        setFaqInputTargetKeyword('');
         alert("FAQ item posted successfully!");
         await loadFaqs();
       } else {
@@ -1067,6 +1300,18 @@ export default function App() {
       });
       const data = await res.json();
       if (data.success) {
+        // Delete from local storage immediately
+        try {
+          const stored = localStorage.getItem('sc_faqs');
+          if (stored) {
+            const list = JSON.parse(stored);
+            const updated = list.filter((f: any) => f.id !== id);
+            localStorage.setItem('sc_faqs', JSON.stringify(updated));
+          }
+        } catch (e) {
+          console.warn("Failed deleting FAQ from localStorage:", e);
+        }
+
         alert("FAQ item deleted successfully.");
         await loadFaqs();
       } else {
@@ -1645,83 +1890,113 @@ export default function App() {
                   <p className="text-sm text-navy-slate">Trojan Recovery delivers rigorous forensic investigations following institutional compliance frameworks worldwide.</p>
                 </div>
 
+                {/* Services Category Filter Bar */}
+                <div className="flex flex-wrap justify-center gap-2 border-b border-white/5 pb-4 max-w-xl mx-auto">
+                  {['All', 'Recovery', 'Forensics', 'Access'].map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => {
+                        setServicesCategory(cat);
+                        trackEvent('services_category_selected', { category: cat });
+                      }}
+                      className={`px-4 py-2 text-xs font-mono tracking-wider font-bold uppercase transition rounded-sm border ${
+                        servicesCategory === cat
+                          ? 'bg-gold border-gold text-[#050b14]'
+                          : 'border-white/10 text-navy-slate hover:border-gold/30 hover:text-white'
+                      }`}
+                    >
+                      {cat} {cat === 'All' ? 'Operations' : cat === 'Recovery' ? 'Services' : cat === 'Forensics' ? 'Analysis' : 'Restorations'}
+                    </button>
+                  ))}
+                </div>
+
                 <motion.div 
-                  initial="hidden"
-                  animate="visible"
-                  variants={{
-                    hidden: {},
-                    visible: {
-                      transition: {
-                        staggerChildren: 0.1
-                      }
-                    }
-                  }}
+                  layout
                   className="grid grid-cols-1 gap-8 md:grid-cols-2"
                 >
-                  {SERVICES.map((svc) => (
-                    <motion.div 
-                      key={svc.id}
-                      variants={{
-                        hidden: { y: 15, opacity: 0 },
-                        visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 110, damping: 15 } }
-                      }}
-                      className="glow-card rounded-2xl border border-gold/15 bg-navy-light/10 p-6 md:p-8 space-y-4 flex flex-col justify-between"
-                    >
-                      <div>
-                        <div className="flex items-start justify-between">
-                          <h3 className="font-display text-lg font-bold text-white tracking-wide uppercase border-b border-gold/10 pb-1.5">{svc.title}</h3>
-                          <span className="rounded bg-gold/15 px-2.5 py-1 text-[9.5px] font-mono text-gold-light uppercase border border-gold/10">Active Protocol</span>
-                        </div>
-                        
-                        <p className="text-xs text-navy-slate leading-relaxed mt-4">{svc.shortDesc || svc.longDesc}</p>
-                        
-                        <div className="grid grid-cols-1 gap-4 pt-4 sm:grid-cols-2">
-                          <div>
-                            <span className="font-display text-[10px] font-bold text-gold tracking-widest uppercase">Target Outcomes</span>
-                            <ul className="mt-1.5 space-y-1 text-[11px] text-navy-slate">
-                              {svc.benefits.slice(0, 2).map((b, i) => (
-                                <li key={i} className="flex items-center space-x-1.5">
-                                  <span className="h-1 w-1 rounded-full bg-gold shrink-0"></span>
-                                  <span className="truncate">{b}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                          <div>
-                            <span className="font-display text-[10px] font-bold text-gold tracking-widest uppercase">Methodologies</span>
-                            <ul className="mt-1.5 space-y-1 text-[11px] text-navy-slate">
-                              {svc.methodologies.slice(0, 2).map((m, i) => (
-                                <li key={i} className="flex items-center space-x-1.5">
-                                  <span className="h-1 w-1 rounded-full bg-navy-slate shrink-0"></span>
-                                  <span className="truncate">{m}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        </div>
-                      </div>
+                  <AnimatePresence mode="popLayout">
+                    {(() => {
+                      const filteredServices = SERVICES.filter(svc => {
+                        if (servicesCategory === 'All') return true;
+                        if (servicesCategory === 'Recovery') {
+                          return svc.id.includes('recovery') || svc.id.includes('fraud');
+                        }
+                        if (servicesCategory === 'Forensics') {
+                          return svc.id.includes('analysis') || svc.id.includes('forensic');
+                        }
+                        if (servicesCategory === 'Access') {
+                          return svc.id.includes('access') || svc.id.includes('wallet');
+                        }
+                        return true;
+                      });
 
-                      <div className="pt-6 flex justify-between space-x-2 items-center border-t border-white/5 mt-4">
-                        <button 
-                          onClick={() => {
-                            setSelectedServiceId(svc.id);
-                          }}
-                          className="font-mono text-[10px] text-gold hover:underline uppercase tracking-wider font-bold"
+                      return filteredServices.map((svc) => (
+                        <motion.div 
+                          layout
+                          initial={{ opacity: 0, scale: 0.95, y: 15 }}
+                          animate={{ opacity: 1, scale: 1, y: 0 }}
+                          exit={{ opacity: 0, scale: 0.95, y: -15 }}
+                          transition={{ duration: 0.3, ease: "easeInOut" }}
+                          key={svc.id}
+                          className="glow-card rounded-2xl border border-gold/15 bg-navy-light/10 p-6 md:p-8 space-y-4 flex flex-col justify-between animate-in duration-300"
                         >
-                          View Forensic Protocol &amp; Details →
-                        </button>
-                        <button 
-                          onClick={() => {
-                            setContactScamType(svc.title);
-                            setTab('contact');
-                          }}
-                          className="rounded bg-gold px-4 py-2 text-[10px] font-bold tracking-widest text-[#050b14] hover:bg-gold-hover transition duration-200 uppercase"
-                        >
-                          Request Audit
-                        </button>
-                      </div>
-                    </motion.div>
-                  ))}
+                          <div>
+                            <div className="flex items-start justify-between">
+                              <h3 className="font-display text-lg font-bold text-white tracking-wide uppercase border-b border-gold/10 pb-1.5">{svc.title}</h3>
+                              <span className="rounded bg-gold/15 px-2.5 py-1 text-[9.5px] font-mono text-gold-light uppercase border border-gold/10">Active Protocol</span>
+                            </div>
+                            
+                            <p className="text-xs text-navy-slate leading-relaxed mt-4">{svc.shortDesc || svc.longDesc}</p>
+                            
+                            <div className="grid grid-cols-1 gap-4 pt-4 sm:grid-cols-2">
+                              <div>
+                                <span className="font-display text-[10px] font-bold text-gold tracking-widest uppercase">Target Outcomes</span>
+                                <ul className="mt-1.5 space-y-1 text-[11px] text-navy-slate">
+                                  {svc.benefits.slice(0, 2).map((b, i) => (
+                                    <li key={i} className="flex items-center space-x-1.5">
+                                      <span className="h-1 w-1 rounded-full bg-gold shrink-0"></span>
+                                      <span className="truncate">{b}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                              <div>
+                                <span className="font-display text-[10px] font-bold text-gold tracking-widest uppercase">Methodologies</span>
+                                <ul className="mt-1.5 space-y-1 text-[11px] text-navy-slate">
+                                  {svc.methodologies.slice(0, 2).map((m, i) => (
+                                    <li key={i} className="flex items-center space-x-1.5">
+                                      <span className="h-1 w-1 rounded-full bg-navy-slate shrink-0"></span>
+                                      <span className="truncate">{m}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="pt-6 flex justify-between space-x-2 items-center border-t border-white/5 mt-4">
+                            <button 
+                              onClick={() => {
+                                setSelectedServiceId(svc.id);
+                              }}
+                              className="font-mono text-[10px] text-gold hover:underline uppercase tracking-wider font-bold"
+                            >
+                              View Forensic Protocol &amp; Details →
+                            </button>
+                            <button 
+                              onClick={() => {
+                                setContactScamType(svc.title);
+                                setTab('contact');
+                              }}
+                              className="rounded bg-gold px-4 py-2 text-[10px] font-bold tracking-widest text-[#050b14] hover:bg-gold-hover transition duration-200 uppercase"
+                            >
+                              Request Audit
+                            </button>
+                          </div>
+                        </motion.div>
+                      ));
+                    })()}
+                  </AnimatePresence>
                 </motion.div>
               </>
             )}
@@ -2842,9 +3117,15 @@ export default function App() {
                             </div>
 
                             <div className="space-y-3">
+                              {aiTempFaq.targetKeyword && (
+                                <div>
+                                  <h4 className="text-[10px] font-bold font-mono text-emerald-400 uppercase tracking-wider">Target Search Keyword / Topic:</h4>
+                                  <p className="text-xs text-emerald-300 font-mono font-bold leading-relaxed">{aiTempFaq.targetKeyword}</p>
+                                </div>
+                              )}
                               <div>
-                                <h4 className="text-[10px] font-bold font-mono text-gold uppercase tracking-wider">Question:</h4>
-                                <p className="text-xs text-white font-display font-bold leading-relaxed">{aiTempFaq.question}</p>
+                                  <h4 className="text-[10px] font-bold font-mono text-gold uppercase tracking-wider">Question:</h4>
+                                  <p className="text-xs text-white font-display font-bold leading-relaxed">{aiTempFaq.question}</p>
                               </div>
                               <div>
                                 <h4 className="text-[10px] font-bold font-mono text-gold uppercase tracking-wider">SEO Optimized Answer:</h4>
@@ -2878,7 +3159,7 @@ export default function App() {
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                          <div className="sm:col-span-2">
+                          <div className="sm:col-span-1">
                             <label className="block text-[9.5px] font-bold font-mono text-navy-slate uppercase mb-1">Category</label>
                             <select
                               value={faqInputCategory}
@@ -2892,6 +3173,17 @@ export default function App() {
                               <option value="Legal">Legal</option>
                               <option value="Timeline & Scheduling">Timeline & Scheduling</option>
                             </select>
+                          </div>
+
+                          <div className="sm:col-span-2">
+                            <label className="block text-[9.5px] font-bold font-mono text-navy-slate uppercase mb-1">Target Search Keyword or Topic</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. recover stolen cryptocurrency USA"
+                              value={faqInputTargetKeyword}
+                              onChange={(e) => setFaqInputTargetKeyword(e.target.value)}
+                              className="w-full bg-navy-dark border border-white/10 rounded p-2 text-xs text-white outline-none focus:border-gold"
+                            />
                           </div>
                         </div>
 

@@ -73,6 +73,7 @@ export interface FaqItem {
   question: string;
   answer: string;
   category: string;
+  targetKeyword?: string;
 }
 
 export interface Testimonial {
